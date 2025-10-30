@@ -5,18 +5,18 @@ const FeaturesSection = () => {
   const features = [
     {
       icon: <Mountain className="text-orange-500" size={48} />,
-      title: "Professional Guides",
-      description: "Expert local guides with years of mountain experience"
+      title: "Hướng dẫn viên chuyên nghiệp",
+      description: "Hướng dẫn viên địa phương giàu kinh nghiệm, am hiểu địa hình núi"
     },
     {
       icon: <MapPin className="text-orange-500" size={48} />,
-      title: "Safe Routes",
-      description: "Carefully selected and maintained hiking trails"
+      title: "Lộ trình an toàn",
+      description: "Các cung đường được chọn lọc và bảo trì cẩn thận"
     },
     {
       icon: <Users className="text-orange-500" size={48} />,
-      title: "Small Groups",
-      description: "Intimate group sizes for personalized experience"
+      title: "Nhóm nhỏ",
+      description: "Số lượng nhóm nhỏ để trải nghiệm được cá nhân hóa"
     }
   ];
 
@@ -25,9 +25,9 @@ const FeaturesSection = () => {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Why Choose <span className="text-orange-500">Us</span>
+            Tại sao chọn <span className="text-orange-500">chúng tôi</span>
           </h2>
-          <p className="text-gray-600 text-lg">Experience the Alps like never before</p>
+          <p className="text-gray-600 text-lg">Trải nghiệm dãy Alps như chưa từng có</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">

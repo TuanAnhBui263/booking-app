@@ -6,8 +6,8 @@ const Testimonials = () => {
     {
       id: 1,
       name: "Sarah Johnson",
-      location: "New York, USA",
-      text: "An absolutely incredible experience! The guides were knowledgeable and the views were breathtaking. Highly recommend!",
+      location: "New York, Mỹ",
+      text: "Trải nghiệm thật tuyệt vời! Hướng dẫn viên rất am hiểu và phong cảnh thì ngoạn mục. Rất đáng để thử!",
       rating: 5,
       image: "https://i.pravatar.cc/150?img=1"
     },
@@ -15,15 +15,15 @@ const Testimonials = () => {
       id: 2,
       name: "Michael Chen",
       location: "Singapore",
-      text: "Best hiking tour I've ever been on. Everything was well organized and the group size was perfect.",
+      text: "Chuyến leo núi tuyệt nhất mà tôi từng tham gia. Mọi thứ đều được tổ chức chuyên nghiệp và nhóm vừa phải.",
       rating: 5,
       image: "https://i.pravatar.cc/150?img=13"
     },
     {
       id: 3,
       name: "Emma Wilson",
-      location: "London, UK",
-      text: "The Matterhorn trek was a dream come true. Professional guides made us feel safe throughout the journey.",
+      location: "London, Anh",
+      text: "Hành trình chinh phục Matterhorn là ước mơ thành hiện thực. Hướng dẫn viên rất chuyên nghiệp và luôn đảm bảo an toàn.",
       rating: 5,
       image: "https://i.pravatar.cc/150?img=5"
     }
@@ -34,16 +34,16 @@ const Testimonials = () => {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            What Our <span className="text-orange-500">Clients Say</span>
+            Khách hàng <span className="text-orange-500">nói gì</span> về chúng tôi
           </h2>
-          <p className="text-gray-600 text-lg">Real experiences from real adventurers</p>
+          <p className="text-gray-600 text-lg">Trải nghiệm thật từ những người đã tham gia</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
           {testimonials.map(testimonial => (
-            <div key={testimonial.id} className="bg-white p-8 rounded-xl shadow-lg">
+            <div key={testimonial.id} className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition duration-300">
               <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
+                {[...Array(testimonial.rating)].map((_, i) => (
                   <Star key={i} size={18} className="fill-orange-500 text-orange-500" />
                 ))}
               </div>

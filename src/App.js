@@ -1,25 +1,41 @@
 import './index.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/common/Header';
-import HeroSection from './components/home/HeroSection';
-import FeaturesSection from './components/home/FeaturesSection';
-import PopularTours from './components/home/PopularTours';
-import SearchForm from './components/home/SearchForm';
-import Testimonials from './components/home/Testimonials';
 import Footer from './components/common/Footer';
 
+import HomePage from './components/pages/HomePage';
+import TourListPage from './components/tours/TourListPage';
+import CheckoutPage from './components/checkout/CheckoutPage';
 const App = () => {
   return (
-    <div className="min-h-screen bg-white">
-      <Header />
-      <main className="pt-[120px]">
-        <HeroSection />
-        <FeaturesSection />
-        <PopularTours />
-        <SearchForm />
-        <Testimonials />
-      </main>
-      <Footer />
-    </div>
+    <Router>
+      <div className="min-h-screen bg-white">
+        <Routes>
+          {/* Home Page Route */}
+          <Route path="/" element={
+            <>
+              <Header />
+              <HomePage />
+              <Footer />
+            </>
+          } />
+
+          {/* Tour List Page Route */}
+          <Route path="/tours" element={
+            <>
+              <Header />
+              <main className="pt-[120px]">
+                <TourListPage />
+              </main>
+              <Footer />
+            </>
+          } />
+
+          {/* Checkout Page Route */}
+          <Route path="/checkout" element={<CheckoutPage />} />
+        </Routes>
+      </div>
+    </Router>
   );
 };
 

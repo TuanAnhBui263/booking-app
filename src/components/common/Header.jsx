@@ -1,12 +1,30 @@
 import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Mountain, Phone, Mail, User, ShoppingBag, Menu, X, Facebook, MessageCircle, Twitter } from 'lucide-react';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleSearchClick = () => {
+    if (location.pathname !== '/') {
+      // 👈 Nếu đang ở trang khác, quay về trang chủ và scroll sau 300ms
+      navigate('/');
+      setTimeout(() => {
+        const searchSection = document.getElementById('search');
+        if (searchSection) searchSection.scrollIntoView({ behavior: 'smooth' });
+      }, 400);
+    } else {
+      // 👈 Nếu đang ở trang chủ, chỉ scroll thôi
+      const searchSection = document.getElementById('search');
+      if (searchSection) searchSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <header className="fixed w-full top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm">
-      {/* Top Bar */}
+      {/* Thanh trên cùng */}
       <div className="bg-gray-100 py-2 px-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-sm">
           <div className="flex gap-6">
@@ -27,11 +45,14 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Main Navigation */}
+      {/* Thanh điều hướng chính */}
       <nav className="px-4 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <div 
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => navigate('/')}
+          >
             <Mountain className="text-orange-500" size={32} />
             <div className="font-bold text-xl">
               <span className="text-gray-800">HIKING</span>
@@ -39,27 +60,30 @@ const Header = () => {
             </div>
           </div>
 
-          {/* Desktop Menu */}
+          {/* Menu desktop */}
           <div className="hidden lg:flex items-center gap-8">
-            <a href="#home" className="text-gray-800 font-medium hover:text-orange-500 transition">HOME</a>
-            <a href="#tours" className="text-gray-600 hover:text-orange-500 transition">TOUR LIST</a>
-            <a href="#search" className="text-gray-600 hover:text-orange-500 transition">TOUR SEARCH</a>
-            <a href="#destinations" className="text-gray-600 hover:text-orange-500 transition">DESTINATIONS</a>
-            <a href="#testimonials" className="text-gray-600 hover:text-orange-500 transition">REVIEWS</a>
-            <a href="#contact" className="text-gray-600 hover:text-orange-500 transition">CONTACT</a>
+            <Link to="/" className="text-gray-800 font-medium hover:text-orange-500 transition">TRANG CHỦ</Link>
+            <Link to="/tours" className="text-gray-600 hover:text-orange-500 transition">DANH SÁCH TOUR</Link>
+            <button onClick={handleSearchClick} className="text-gray-600 hover:text-orange-500 transition">
+              TÌM KIẾM TOUR
+            </button>
+            <a href="#destinations" className="text-gray-600 hover:text-orange-500 transition">ĐIỂM ĐẾN</a>
+            <a href="#testimonials" className="text-gray-600 hover:text-orange-500 transition">ĐÁNH GIÁ</a>
+            <a href="#contact" className="text-gray-600 hover:text-orange-500 transition">LIÊN HỆ</a>
           </div>
 
-          {/* Right Menu */}
+          {/* Menu bên phải */}
           <div className="flex items-center gap-4">
             <button className="hidden lg:flex items-center gap-2 text-gray-600 hover:text-orange-500">
               <User size={20} />
-              <span>Login</span>
+              <span>Đăng nhập</span>
             </button>
             <button className="relative">
               <ShoppingBag className="text-gray-600 hover:text-orange-500" size={24} />
               <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
             </button>
-            
+
+            {/* Nút mở menu mobile */}
             <button 
               className="lg:hidden"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -69,16 +93,16 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Menu di động */}
         {isMenuOpen && (
           <div className="lg:hidden mt-4 pb-4 border-t">
             <div className="flex flex-col gap-4 mt-4">
-              <a href="#home" className="text-gray-800 font-medium hover:text-orange-500">HOME</a>
-              <a href="#tours" className="text-gray-600 hover:text-orange-500">TOUR LIST</a>
-              <a href="#search" className="text-gray-600 hover:text-orange-500">TOUR SEARCH</a>
-              <a href="#destinations" className="text-gray-600 hover:text-orange-500">DESTINATIONS</a>
-              <a href="#testimonials" className="text-gray-600 hover:text-orange-500">REVIEWS</a>
-              <a href="#contact" className="text-gray-600 hover:text-orange-500">CONTACT</a>
+              <Link to="/" className="text-gray-800 font-medium hover:text-orange-500">TRANG CHỦ</Link>
+              <Link to="/tours" className="text-gray-600 hover:text-orange-500">DANH SÁCH TOUR</Link>
+              <button onClick={handleSearchClick} className="text-left text-gray-600 hover:text-orange-500">TÌM KIẾM TOUR</button>
+              <a href="#destinations" className="text-gray-600 hover:text-orange-500">ĐIỂM ĐẾN</a>
+              <a href="#testimonials" className="text-gray-600 hover:text-orange-500">ĐÁNH GIÁ</a>
+              <a href="#contact" className="text-gray-600 hover:text-orange-500">LIÊN HỆ</a>
             </div>
           </div>
         )}

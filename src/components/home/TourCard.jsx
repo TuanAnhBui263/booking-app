@@ -1,7 +1,17 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, Users, MapPin, Star, ChevronRight } from 'lucide-react';
 
 const TourCard = ({ tour }) => {
+  const navigate = useNavigate();
+
+  const handleBookNow = () => {
+    // Chuyển hướng đến trang thanh toán và truyền dữ liệu tour
+    navigate('/checkout', { 
+      state: { tour } 
+    });
+  };
+
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
       <div className="relative h-64 overflow-hidden">
@@ -11,7 +21,7 @@ const TourCard = ({ tour }) => {
           className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
         />
         <div className="absolute top-4 right-4 bg-orange-500 text-white px-3 py-1 rounded-full font-semibold">
-          ${tour.price}
+          {tour.price.toLocaleString('vi-VN')}₫
         </div>
       </div>
       
@@ -20,7 +30,7 @@ const TourCard = ({ tour }) => {
           {[...Array(5)].map((_, i) => (
             <Star key={i} size={16} className={i < tour.rating ? "fill-orange-500 text-orange-500" : "text-gray-300"} />
           ))}
-          <span className="text-sm text-gray-600 ml-2">({tour.reviews} reviews)</span>
+          <span className="text-sm text-gray-600 ml-2">({tour.reviews} đánh giá)</span>
         </div>
         
         <h3 className="text-xl font-bold mb-3 hover:text-orange-500 cursor-pointer">
@@ -30,20 +40,23 @@ const TourCard = ({ tour }) => {
         <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
           <div className="flex items-center gap-1">
             <Clock size={16} />
-            <span>{tour.duration}</span>
+            <span>Thời lượng: {tour.duration}</span>
           </div>
           <div className="flex items-center gap-1">
             <Users size={16} />
-            <span>{tour.groupSize}</span>
+            <span>Nhóm: {tour.groupSize}</span>
           </div>
           <div className="flex items-center gap-1">
             <MapPin size={16} />
-            <span>{tour.location}</span>
+            <span>Địa điểm: {tour.location}</span>
           </div>
         </div>
         
-        <button className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors flex items-center justify-center gap-2">
-          Book Now
+        <button 
+          onClick={handleBookNow}
+          className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+        >
+          Đặt ngay
           <ChevronRight size={18} />
         </button>
       </div>

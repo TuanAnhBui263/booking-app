@@ -13,16 +13,20 @@ const HeroSection = () => {
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/20" />
 
       <div className="relative z-10 text-center px-4">
-        <h1 className="text-6xl md:text-8xl lg:text-9xl font-black mb-8">
+        <h1 className="text-6xl md:text-8xl lg:text-9xl font-black mb-6">
           <span className="text-orange-500">ALPS</span>
           <span className="text-white ml-4">HIKING</span>
         </h1>
+
+        <p className="text-lg md:text-2xl text-white/90 mb-8">
+          Khám phá dãy Alps cùng chúng tôi — hành trình leo núi an toàn và đáng nhớ
+        </p>
         
         <div className="h-20 w-1 bg-white mx-auto mb-8 opacity-50" />
         
-        <a href="#tours">
+        <a href="#tours" aria-label="Xem tất cả tour">
           <button className="bg-white text-gray-800 px-8 py-4 rounded-full font-semibold text-lg hover:bg-orange-500 hover:text-white transition-all duration-300 transform hover:scale-105 shadow-lg">
-            VIEW ALL TOURS
+            XEM TẤT CẢ TOUR
           </button>
         </a>
       </div>

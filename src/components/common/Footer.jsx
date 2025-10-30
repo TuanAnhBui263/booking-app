@@ -6,7 +6,7 @@ const Footer = () => {
     <footer id="contact" className="bg-gray-900 text-white py-16 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="grid md:grid-cols-4 gap-8 mb-12">
-          {/* Company Info */}
+          {/* Thông tin công ty */}
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Mountain className="text-orange-500" size={32} />
@@ -16,7 +16,7 @@ const Footer = () => {
               </div>
             </div>
             <p className="text-gray-400 mb-4">
-              Experience the beauty of the Alps with professional guides and unforgettable adventures.
+              Trải nghiệm vẻ đẹp hùng vĩ của dãy Alps cùng đội ngũ hướng dẫn viên chuyên nghiệp và những hành trình khó quên.
             </p>
             <div className="flex gap-4">
               <a href="#" className="text-gray-400 hover:text-orange-500"><Facebook size={20} /></a>
@@ -25,31 +25,31 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Liên kết nhanh */}
           <div>
-            <h3 className="font-semibold text-lg mb-4">Quick Links</h3>
+            <h3 className="font-semibold text-lg mb-4">Liên kết nhanh</h3>
             <ul className="space-y-2">
-              <li><a href="#home" className="text-gray-400 hover:text-orange-500">Home</a></li>
-              <li><a href="#tours" className="text-gray-400 hover:text-orange-500">Tours</a></li>
-              <li><a href="#destinations" className="text-gray-400 hover:text-orange-500">Destinations</a></li>
-              <li><a href="#testimonials" className="text-gray-400 hover:text-orange-500">Reviews</a></li>
+              <li><a href="#home" className="text-gray-400 hover:text-orange-500">Trang chủ</a></li>
+              <li><a href="#tours" className="text-gray-400 hover:text-orange-500">Tour du lịch</a></li>
+              <li><a href="#destinations" className="text-gray-400 hover:text-orange-500">Điểm đến</a></li>
+              <li><a href="#testimonials" className="text-gray-400 hover:text-orange-500">Đánh giá</a></li>
             </ul>
           </div>
 
-          {/* Support */}
+          {/* Hỗ trợ */}
           <div>
-            <h3 className="font-semibold text-lg mb-4">Support</h3>
+            <h3 className="font-semibold text-lg mb-4">Hỗ trợ</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-orange-500">Help Center</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-orange-500">Terms of Service</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-orange-500">Privacy Policy</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-orange-500">FAQ</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-orange-500">Trung tâm trợ giúp</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-orange-500">Điều khoản dịch vụ</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-orange-500">Chính sách bảo mật</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-orange-500">Câu hỏi thường gặp (FAQ)</a></li>
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Liên hệ */}
           <div>
-            <h3 className="font-semibold text-lg mb-4">Contact Us</h3>
+            <h3 className="font-semibold text-lg mb-4">Liên hệ với chúng tôi</h3>
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-gray-400">
                 <Phone size={18} />
@@ -61,14 +61,14 @@ const Footer = () => {
               </li>
               <li className="flex items-center gap-2 text-gray-400">
                 <MapPin size={18} />
-                <span>Alps Region, Switzerland</span>
+                <span>Khu vực dãy Alps, Thụy Sĩ</span>
               </li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-          <p>&copy; 2025 Alps Hiking Tour. All rights reserved.</p>
+          <p>&copy; 2025 Alps Hiking Tour. Mọi quyền được bảo lưu.</p>
         </div>
       </div>
     </footer>
