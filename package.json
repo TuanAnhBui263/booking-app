@@ -2,7 +2,7 @@
   "name": "booking-app",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://<ten_taikhoan_github>.github.io/booking-app",
+  "homepage": "https://github.com/TuanAnhBui263/booking-app",
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
