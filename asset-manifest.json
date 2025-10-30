@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/TuanAnhBui263/booking-app/static/css/main.f6683931.css",
-    "main.js": "/TuanAnhBui263/booking-app/static/js/main.2f16b72d.js",
-    "static/js/453.0ce0afcf.chunk.js": "/TuanAnhBui263/booking-app/static/js/453.0ce0afcf.chunk.js",
-    "index.html": "/TuanAnhBui263/booking-app/index.html",
-    "main.f6683931.css.map": "/TuanAnhBui263/booking-app/static/css/main.f6683931.css.map",
-    "main.2f16b72d.js.map": "/TuanAnhBui263/booking-app/static/js/main.2f16b72d.js.map",
-    "453.0ce0afcf.chunk.js.map": "/TuanAnhBui263/booking-app/static/js/453.0ce0afcf.chunk.js.map"
+    "main.css": "/booking-app/static/css/main.f6683931.css",
+    "main.js": "/booking-app/static/js/main.a49c85bf.js",
+    "static/js/453.0ce0afcf.chunk.js": "/booking-app/static/js/453.0ce0afcf.chunk.js",
+    "index.html": "/booking-app/index.html",
+    "main.f6683931.css.map": "/booking-app/static/css/main.f6683931.css.map",
+    "main.a49c85bf.js.map": "/booking-app/static/js/main.a49c85bf.js.map",
+    "453.0ce0afcf.chunk.js.map": "/booking-app/static/js/453.0ce0afcf.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.f6683931.css",
-    "static/js/main.2f16b72d.js"
+    "static/js/main.a49c85bf.js"
   ]
 }
