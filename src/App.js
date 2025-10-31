@@ -8,7 +8,7 @@ import HomePage from './components/pages/HomePage';
 import TourListPage from './components/tours/TourListPage';
 import CheckoutPage from './components/checkout/CheckoutPage';
 import LoginPage from './components/auth/LoginPage';
-import AdminPage from './pages/AdminPage';
+import AdminPage from './components/pages/AdminPage';
 
 const App = () => {
   return (

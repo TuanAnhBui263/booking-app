@@ -22,7 +22,7 @@ const Header = () => {
 
   return (
     <header className="fixed w-full top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm">
-      {}
+      { }
       <div className="bg-gray-100 py-2 px-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-sm">
           <div className="flex gap-6">
@@ -47,7 +47,7 @@ const Header = () => {
       <nav className="px-4 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           {/* Logo */}
-          <div 
+          <div
             className="flex items-center gap-2 cursor-pointer"
             onClick={() => navigate('/')}
           >
@@ -70,19 +70,22 @@ const Header = () => {
             <a href="#contact" className="text-gray-600 hover:text-orange-500 transition">LIÊN HỆ</a>
           </div>
 
-          {/* Menu bên phải */}
+          { }
           <div className="flex items-center gap-4">
-            <button className="hidden lg:flex items-center gap-2 text-gray-600 hover:text-orange-500">
+            <Link
+              to="/login"
+              className="hidden lg:flex items-center gap-2 text-gray-600 hover:text-orange-500"
+            >
               <User size={20} />
               <span>Đăng nhập</span>
-            </button>
+            </Link>
             <button className="relative">
               <ShoppingBag className="text-gray-600 hover:text-orange-500" size={24} />
               <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
             </button>
 
-            {}
-            <button 
+            { }
+            <button
               className="lg:hidden"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
@@ -91,7 +94,7 @@ const Header = () => {
           </div>
         </div>
 
-        {}
+        { }
         {isMenuOpen && (
           <div className="lg:hidden mt-4 pb-4 border-t">
             <div className="flex flex-col gap-4 mt-4">
@@ -101,6 +104,7 @@ const Header = () => {
               <a href="#destinations" className="text-gray-600 hover:text-orange-500">ĐIỂM ĐẾN</a>
               <a href="#testimonials" className="text-gray-600 hover:text-orange-500">ĐÁNH GIÁ</a>
               <a href="#contact" className="text-gray-600 hover:text-orange-500">LIÊN HỆ</a>
+              <Link to="/login" className="text-gray-600 hover:text-orange-500">Đăng nhập</Link>
             </div>
           </div>
         )}

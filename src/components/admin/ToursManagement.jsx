@@ -1,3 +1,5 @@
+import React, { useState } from 'react';
+import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 const ToursManagement = () => {
     const tours = [
       { id: 1, name: 'Matterhorn Base Trek', location: 'Switzerland', price: 299, status: 'Active' },

@@ -1,3 +1,6 @@
+import React, { useState } from 'react';
+import { LayoutDashboard } from 'lucide-react';
+import { MapPin, ShoppingBag, Users, Settings, User, LogOut, X } from 'lucide-react';
 const AdminSidebar = ({ activeMenu, setActiveMenu, isMobileOpen, setIsMobileOpen }) => {
     const menuItems = [
       { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },

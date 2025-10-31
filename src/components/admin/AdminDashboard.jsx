@@ -1,3 +1,6 @@
+import React, { useState } from 'react';
+import { DollarSign, ShoppingBag, Users, MapPin } from 'lucide-react';
+
 const AdminDashboard = () => {
     return (
       <div>
