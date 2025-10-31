@@ -6,7 +6,6 @@ const TourCard = ({ tour }) => {
   const navigate = useNavigate();
 
   const handleBookNow = () => {
-    // Chuyển hướng đến trang thanh toán và truyền dữ liệu tour
     navigate('/checkout', { 
       state: { tour } 
     });

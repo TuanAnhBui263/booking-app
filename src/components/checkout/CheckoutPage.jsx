@@ -81,16 +81,13 @@ const CheckoutPage = () => {
 
     setIsProcessing(true);
 
-    // Mô phỏng quá trình thanh toán
     setTimeout(() => {
       setIsProcessing(false);
 
       if (selectedMethod === 'vnpay') {
         alert('Đang chuyển hướng đến cổng thanh toán VNPay...');
-        // window.location.href = 'vnpay_payment_url';
       } else if (selectedMethod === 'paypal') {
         alert('Đang chuyển hướng đến PayPal...');
-        // window.location.href = 'paypal_payment_url';
       } else {
         alert('Đang xử lý thanh toán bằng thẻ tín dụng...');
       }
