@@ -3,15 +3,19 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
 
+// Import pages
 import HomePage from './components/pages/HomePage';
 import TourListPage from './components/tours/TourListPage';
 import CheckoutPage from './components/checkout/CheckoutPage';
+import LoginPage from './components/auth/LoginPage';
+import AdminPage from './pages/AdminPage';
+
 const App = () => {
   return (
     <Router>
       <div className="min-h-screen bg-white">
         <Routes>
-          {/* Home Page Route */}
+          {}
           <Route path="/" element={
             <>
               <Header />
@@ -20,7 +24,7 @@ const App = () => {
             </>
           } />
 
-          {/* Tour List Page Route */}
+          {}
           <Route path="/tours" element={
             <>
               <Header />
@@ -31,8 +35,14 @@ const App = () => {
             </>
           } />
 
-          {/* Checkout Page Route */}
+          {}
           <Route path="/checkout" element={<CheckoutPage />} />
+
+          {}
+          <Route path="/login" element={<LoginPage />} />
+
+          {}
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </div>
     </Router>

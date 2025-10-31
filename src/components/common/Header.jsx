@@ -9,14 +9,12 @@ const Header = () => {
 
   const handleSearchClick = () => {
     if (location.pathname !== '/') {
-      // 👈 Nếu đang ở trang khác, quay về trang chủ và scroll sau 300ms
       navigate('/');
       setTimeout(() => {
         const searchSection = document.getElementById('search');
         if (searchSection) searchSection.scrollIntoView({ behavior: 'smooth' });
       }, 400);
     } else {
-      // 👈 Nếu đang ở trang chủ, chỉ scroll thôi
       const searchSection = document.getElementById('search');
       if (searchSection) searchSection.scrollIntoView({ behavior: 'smooth' });
     }
@@ -24,7 +22,7 @@ const Header = () => {
 
   return (
     <header className="fixed w-full top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm">
-      {/* Thanh trên cùng */}
+      {}
       <div className="bg-gray-100 py-2 px-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-sm">
           <div className="flex gap-6">
@@ -83,7 +81,7 @@ const Header = () => {
               <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
             </button>
 
-            {/* Nút mở menu mobile */}
+            {}
             <button 
               className="lg:hidden"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -93,7 +91,7 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Menu di động */}
+        {}
         {isMenuOpen && (
           <div className="lg:hidden mt-4 pb-4 border-t">
             <div className="flex flex-col gap-4 mt-4">
