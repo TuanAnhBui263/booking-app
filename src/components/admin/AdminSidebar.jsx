@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
-import { Menu, Search, Bell, User, X, LogOut } from 'lucide-react';
-import { LayoutDashboard, MapPin, ShoppingBag, Users as UsersIcon, Settings } from 'lucide-react';
+import React from 'react';
+import { MapPin, LogOut, User, X, LayoutDashboard, ShoppingBag, Users as UsersIcon, Settings } from 'lucide-react';
 
 const AdminSidebar = ({ activePage, setActivePage, isSidebarOpen, setIsSidebarOpen }) => {
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'tours', icon: MapPin, label: 'Tours' },
     { id: 'bookings', icon: ShoppingBag, label: 'Bookings' },
-    { id: 'customers', icon: UsersIcon, label: 'Customers' },
-    { id: 'settings', icon: Settings, label: 'Settings' }
+    { id: 'customers', icon: UsersIcon, label: 'Khách Hàng' },
+    { id: 'settings', icon: Settings, label: 'Cài Đặt' }
   ];
 
   return (
@@ -31,11 +30,18 @@ const AdminSidebar = ({ activePage, setActivePage, isSidebarOpen, setIsSidebarOp
         <div className="h-full flex flex-col">
           {/* Logo */}
           <div className="flex items-center justify-between p-6 border-b border-gray-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-                <MapPin size={24} />
-              </div>
-              <span className="font-bold text-lg">TourAdmin</span>
+            <div 
+              className="flex items-center gap-3 cursor-pointer group"
+              onClick={() => setActivePage('dashboard')}
+            >
+              <img
+                src="https://res.cloudinary.com/dosyknq32/image/upload/v1761962915/VanVivu_lifxyr.jpg"
+                alt="Van Vi Vu Logo"
+                className="h-14 w-auto rounded-xl object-contain shadow-md transition-transform duration-300 group-hover:scale-110 group-hover:brightness-110"
+              />
+              <span className="font-bold text-lg text-white tracking-wide group-hover:text-orange-400 transition-colors">
+                Van Vi Vu
+              </span>
             </div>
             <button 
               className="lg:hidden"
@@ -90,4 +96,5 @@ const AdminSidebar = ({ activePage, setActivePage, isSidebarOpen, setIsSidebarOp
     </>
   );
 };
-export default AdminSidebar;  
+
+export default AdminSidebar;
