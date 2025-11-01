@@ -158,7 +158,7 @@ const CheckoutPage = () => {
             </button>
           </div>
 
-          {/* Cột phải - Tóm tắt đơn hàng */}
+          {}
           <div className="lg:col-span-1">
             <OrderSummary tourData={tourData} />
           </div>

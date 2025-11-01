@@ -8,7 +8,7 @@ import HomePage from './components/pages/HomePage';
 import TourListPage from './components/tours/TourListPage';
 import TourDetailPage from './components/tours/TourDetailPage';
 import CheckoutPage from './components/checkout/CheckoutPage';
-import BookingHistoryPage from './components/pages/BookingHistoryPage';  // ← THÊM DÒNG NÀY
+import BookingHistoryPage from './components/pages/BookingHistoryPage'; 
 import LoginPage from './components/auth/LoginPage';
 import AdminPage from './components/pages/AdminPage';
 
@@ -55,12 +55,12 @@ const App = () => {
           <Route path="/bookings" element={
             <>
               <Header />
-              <main className="pt-[150px]">   {/* 👈 Thêm padding-top cho phần nội dung */}
+              <main className="pt-[150px]">   {}
                 <BookingHistoryPage />
               </main>
               <Footer />
             </>
-          } />  {/* ← THÊM ROUTE NÀY */}
+          } />  {}
 
           {/* Login */}
           <Route path="/login" element={<LoginPage />} />

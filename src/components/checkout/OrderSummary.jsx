@@ -54,7 +54,7 @@ const OrderSummary = ({ tourData }) => {
         </div>
       </div>
 
-      {/* Bảo mật thanh toán */}
+      {}
       <div className="mt-6 flex items-center gap-2 text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
         <Lock size={16} />
         <span>Thanh toán an toàn với mã hóa SSL</span>
