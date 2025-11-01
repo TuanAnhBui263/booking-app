@@ -31,11 +31,11 @@ const AdminSidebar = ({ activeMenu, setActiveMenu, isMobileOpen, setIsMobileOpen
             {/* Logo */}
             <div className="flex items-center justify-between p-6 border-b border-gray-800">
               <div className="flex items-center gap-3">
-                <LayoutDashboard className="text-orange-500" size={32} />
-                <div>
-                  <h2 className="font-bold text-lg">Hiking Tour</h2>
-                  <p className="text-xs text-gray-400">Admin Panel</p>
-                </div>
+                <img 
+                  src="https://res.cloudinary.com/dosyknq32/image/upload/v1761962915/VanVivu_lifxyr.jpg" 
+                  alt="Van Vi Vu Logo" 
+                  className="h-12 w-auto object-contain"
+                />
               </div>
               <button 
                 className="lg:hidden"

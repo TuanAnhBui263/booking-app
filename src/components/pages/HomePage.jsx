@@ -1,17 +1,17 @@
 import React from 'react';
 import HeroSection from '../home/HeroSection';
-import FeaturesSection from '../home/FeaturesSection';
+import  AboutSection from '../home/AboutSection';
 import PopularTours from '../home/PopularTours';
-import SearchForm from '../home/SearchForm';
+import DestinationsSection from '../home/DestinationsSection';
 import Testimonials from '../home/Testimonials';
 
 const HomePage = () => {
   return (
     <main className="pt-[120px]">
       <HeroSection />
-      <FeaturesSection />
+      <AboutSection />
       <PopularTours />
-      <SearchForm />
+      <DestinationsSection />
       <Testimonials />
     </main>
   );

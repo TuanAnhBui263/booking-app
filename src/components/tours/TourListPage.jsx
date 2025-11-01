@@ -1,33 +1,28 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Search, 
-  SlidersHorizontal, 
-  MapPin, 
-  Calendar, 
-  Users, 
-  Clock, 
-  Star, 
+import {
+  Search,
+  SlidersHorizontal,
+  MapPin,
+  Calendar,
+  Users,
+  Clock,
+  Star,
   ChevronRight,
   DollarSign,
   Mountain,
   TrendingUp,
   Award,
   X,
-  Filter
+  Filter,
+  Heart
 } from 'lucide-react';
 
 const TourListPage = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    priceRange: [0, 1000],
-    duration: [],
-    difficulty: [],
-    groupSize: 'all',
-    rating: 0
-  });
+  const [likedTours, setLikedTours] = useState([]);
 
   const allTours = [
     {
@@ -107,334 +102,339 @@ const TourListPage = () => {
       reviews: 156,
       difficulty: "Trung bình",
       featured: false
-    },
-    {
-      id: 7,
-      title: "Khám Phá Dãy Pyrenees",
-      image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80",
-      price: 279,
-      duration: "4 ngày",
-      groupSize: "12-16 người",
-      location: "Pháp",
-      rating: 4,
-      reviews: 67,
-      difficulty: "Dễ",
-      featured: false
-    },
-    {
-      id: 8,
-      title: "Thiên Đường Núi Alps",
-      image: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80",
-      price: 529,
-      duration: "7 ngày",
-      groupSize: "6-10 người",
-      location: "Ý",
-      rating: 5,
-      reviews: 143,
-      difficulty: "Thử thách",
-      featured: false
-    },
-    {
-      id: 9,
-      title: "Hành Trình Glacier Express",
-      image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80",
-      price: 689,
-      duration: "9 ngày",
-      groupSize: "4-8 người",
-      location: "Thụy Sĩ",
-      rating: 5,
-      reviews: 98,
-      difficulty: "Thử thách",
-      featured: true
     }
   ];
 
-  const handleBookNow = (tour) => {
-    navigate('/checkout', { state: { tour } });
+  const toggleLike = (tourId) => {
+    setLikedTours(prev =>
+      prev.includes(tourId)
+        ? prev.filter(id => id !== tourId)
+        : [...prev, tourId]
+    );
+  };
+
+  const handleBookTour = (tour) => {
+    // Điều hướng đến trang checkout và truyền dữ liệu tour
+    navigate('/checkout', {
+      state: {
+        tourData: {
+          id: tour.id,
+          title: tour.title,
+          image: tour.image,
+          price: tour.price,
+          location: tour.location,
+          duration: tour.duration,
+          groupSize: tour.groupSize
+        }
+      }
+    });
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Phần tiêu đề */}
-      <div className="bg-gradient-to-r from-orange-600 to-orange-400 text-white py-16 px-4">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Khám Phá Tất Cả Tour</h1>
-          <p className="text-xl mb-8 text-orange-100">Trải nghiệm những cuộc phiêu lưu leo núi tuyệt vời khắp dãy Alps</p>
-          
-          {/* Thanh tìm kiếm */}
-          <div className="max-w-2xl">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input 
-                type="text"
-                placeholder="Tìm tour theo tên, địa điểm hoặc hoạt động..."
-                className="w-full pl-12 pr-4 py-4 rounded-xl text-gray-800 focus:ring-4 focus:ring-orange-300 focus:outline-none"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      {/* Hero Header */}
+      <div className="relative pt-20 pb-32 px-4 overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80"
+            alt="Mountain background"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70"></div>
+        </div>
+
+        {/* Curved Bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-white" style={{
+          clipPath: 'ellipse(80% 100% at 50% 100%)'
+        }}></div>
+
+        <div className="max-w-7xl mx-auto relative z-10 text-white">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-5 py-2.5 rounded-full mb-6 border border-white/30">
+              <MapPin size={18} />
+              <span className="font-semibold text-sm uppercase tracking-wide">TOURS</span>
+            </div>
+            <h1 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-2xl">Khám Phá Tất Cả Tour</h1>
+            <p className="text-xl text-white/90 max-w-2xl mx-auto drop-shadow-lg">
+              Trải nghiệm những cuộc phiêu lưu leo núi tuyệt vời khắp dãy Alps
+            </p>
+          </div>
+
+          {/* Search Bar */}
+          <div className="max-w-4xl mx-auto">
+            <div className="relative bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-2">
+              <div className="flex items-center gap-4">
+                <div className="flex-1 flex items-center gap-3 px-4">
+                  <Search className="text-gray-600" size={24} />
+                  <input
+                    type="text"
+                    placeholder="Tìm tour theo tên, địa điểm hoặc hoạt động..."
+                    className="w-full py-4 text-gray-800 text-lg focus:outline-none placeholder:text-gray-400 bg-transparent"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <button className="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-8 py-4 rounded-2xl font-bold hover:shadow-xl transition-all flex items-center gap-2 whitespace-nowrap">
+                  Tìm kiếm
+                  <ChevronRight size={20} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Nội dung chính */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="flex gap-8">
-          {/* Bộ lọc bên trái */}
+          {/* Sidebar Filters */}
           <aside className="hidden lg:block w-80 flex-shrink-0">
             <div className="sticky top-24 space-y-6">
-              {/* Bộ lọc */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              {/* Filters Card */}
+              <div className="bg-white rounded-2xl shadow-lg p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold flex items-center gap-2">
-                    <SlidersHorizontal size={20} />
+                    <SlidersHorizontal size={20} className="text-cyan-600" />
                     Bộ lọc
                   </h2>
-                  <button className="text-orange-500 text-sm hover:underline">
+                  <button className="text-cyan-600 text-sm font-semibold hover:underline">
                     Xóa tất cả
                   </button>
                 </div>
 
-                {/* Giá */}
-                <div className="mb-6">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <DollarSign size={18} />
+                {/* Price Range */}
+                <div className="mb-6 pb-6 border-b border-gray-100">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2 text-gray-900">
+                    <DollarSign size={18} className="text-cyan-600" />
                     Khoảng giá
                   </h3>
-                  <input 
-                    type="range" 
-                    min="0" 
-                    max="1000" 
-                    className="w-full accent-orange-500"
+                  <input
+                    type="range"
+                    min="0"
+                    max="1000"
+                    className="w-full accent-cyan-600 h-2 bg-gray-200 rounded-lg"
                   />
-                  <div className="flex justify-between text-sm text-gray-600 mt-2">
-                    <span>$0</span>
-                    <span>$1000+</span>
+                  <div className="flex justify-between text-sm text-gray-600 mt-3">
+                    <span className="font-medium">$0</span>
+                    <span className="font-medium">$1000+</span>
                   </div>
                 </div>
 
-                {/* Thời lượng */}
-                <div className="mb-6">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Clock size={18} />
+                {/* Duration */}
+                <div className="mb-6 pb-6 border-b border-gray-100">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2 text-gray-900">
+                    <Clock size={18} className="text-cyan-600" />
                     Thời lượng
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {['1-3 ngày', '4-6 ngày', '7-9 ngày', '10+ ngày'].map(duration => (
-                      <label key={duration} className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" className="accent-orange-500" />
-                        <span className="text-gray-700">{duration}</span>
+                      <label key={duration} className="flex items-center gap-3 cursor-pointer group">
+                        <input type="checkbox" className="accent-cyan-600 w-4 h-4 rounded" />
+                        <span className="text-gray-700 group-hover:text-cyan-600 transition-colors">{duration}</span>
                       </label>
                     ))}
                   </div>
                 </div>
 
-                {/* Mức độ khó */}
-                <div className="mb-6">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Mountain size={18} />
+                {/* Difficulty */}
+                <div className="mb-6 pb-6 border-b border-gray-100">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2 text-gray-900">
+                    <Mountain size={18} className="text-cyan-600" />
                     Mức độ khó
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {['Dễ', 'Trung bình', 'Thử thách', 'Chuyên nghiệp'].map(level => (
-                      <label key={level} className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" className="accent-orange-500" />
-                        <span className="text-gray-700">{level}</span>
+                      <label key={level} className="flex items-center gap-3 cursor-pointer group">
+                        <input type="checkbox" className="accent-cyan-600 w-4 h-4 rounded" />
+                        <span className="text-gray-700 group-hover:text-cyan-600 transition-colors">{level}</span>
                       </label>
                     ))}
                   </div>
                 </div>
 
-                {/* Đánh giá */}
+                {/* Rating */}
                 <div className="mb-6">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Star size={18} />
-                    Đánh giá tối thiểu
+                  <h3 className="font-semibold mb-4 flex items-center gap-2 text-gray-900">
+                    <Star size={18} className="text-cyan-600" />
+                    Đánh giá
                   </h3>
-                  <div className="space-y-2">
-                    {[5, 4, 3, 2].map(rating => (
-                      <label key={rating} className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="rating" className="accent-orange-500" />
-                        <div className="flex items-center gap-1">
+                  <div className="space-y-3">
+                    {[5, 4, 3].map(rating => (
+                      <label key={rating} className="flex items-center gap-3 cursor-pointer group">
+                        <input type="radio" name="rating" className="accent-cyan-600 w-4 h-4" />
+                        <div className="flex items-center gap-2">
                           {[...Array(rating)].map((_, i) => (
-                            <Star key={i} size={16} className="fill-orange-500 text-orange-500" />
+                            <Star key={i} size={14} className="fill-yellow-400 text-yellow-400" />
                           ))}
-                          <span className="text-gray-700 ml-1">& trở lên</span>
+                          <span className="text-gray-700 group-hover:text-cyan-600 transition-colors">& hơn</span>
                         </div>
                       </label>
                     ))}
                   </div>
                 </div>
-
-                {/* Quy mô nhóm */}
-                <div>
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Users size={18} />
-                    Quy mô nhóm
-                  </h3>
-                  <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
-                    <option>Tất cả</option>
-                    <option>Nhỏ (1-8)</option>
-                    <option>Trung bình (9-15)</option>
-                    <option>Lớn (16+)</option>
-                  </select>
-                </div>
               </div>
 
-              {/* Ưu đãi mùa hè */}
-              <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-xl shadow-lg p-6 text-white">
-                <div className="flex items-center gap-2 mb-3">
-                  <TrendingUp size={24} />
-                  <h3 className="text-xl font-bold">Ưu đãi mùa hè!</h3>
+              {/* Summer Deal */}
+              <div className="bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden">
+                <div className="absolute inset-0 opacity-20">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-2xl"></div>
                 </div>
-                <p className="mb-4">Đặt ngay để tiết kiệm đến 30% cho các tour chọn lọc</p>
-                <button className="w-full bg-white text-orange-500 py-3 rounded-lg font-semibold hover:bg-orange-50 transition-colors">
-                  Xem ưu đãi
-                </button>
-              </div>
-
-              {/* Điểm đến phổ biến */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="font-bold mb-4 flex items-center gap-2">
-                  <MapPin size={18} />
-                  Điểm đến phổ biến
-                </h3>
-                <div className="space-y-3">
-                  {['Thụy Sĩ', 'Pháp', 'Ý', 'Áo'].map(dest => (
-                    <button 
-                      key={dest}
-                      className="w-full text-left px-4 py-2 rounded-lg hover:bg-orange-50 text-gray-700 hover:text-orange-500 transition-colors"
-                    >
-                      {dest}
-                    </button>
-                  ))}
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp size={24} />
+                    <h3 className="text-xl font-bold">Ưu đãi mùa hè!</h3>
+                  </div>
+                  <p className="mb-4 text-cyan-50">Tiết kiệm đến 30% cho các tour chọn lọc</p>
+                  <button className="w-full bg-white text-cyan-600 py-3 rounded-xl font-bold hover:bg-cyan-50 transition-colors shadow-lg">
+                    Xem ưu đãi
+                  </button>
                 </div>
-              </div>
-
-              {/* Huy hiệu giải thưởng */}
-              <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-                <Award className="mx-auto text-orange-500 mb-3" size={48} />
-                <h3 className="font-bold mb-2">Công ty tour tốt nhất 2024</h3>
-                <p className="text-sm text-gray-600">Được bình chọn bởi Travel Excellence</p>
               </div>
             </div>
           </aside>
 
-          {/* Nút bộ lọc di động */}
-          <button 
+          {/* Mobile Filter Button */}
+          <button
             onClick={() => setShowMobileFilters(true)}
-            className="lg:hidden fixed bottom-6 right-6 bg-orange-500 text-white p-4 rounded-full shadow-2xl z-40 hover:bg-orange-600 transition-colors"
+            className="lg:hidden fixed bottom-6 right-6 bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-4 rounded-full shadow-2xl z-40 hover:shadow-cyan-500/50 transition-all"
           >
             <Filter size={24} />
           </button>
 
-          {/* Danh sách tour */}
+          {/* Tours Grid */}
           <div className="flex-1">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
               <div>
-                <h2 className="text-2xl font-bold">{allTours.length} tour hiện có</h2>
-                <p className="text-gray-600">Hãy chọn hành trình phù hợp nhất với bạn</p>
+                <h2 className="text-3xl font-bold text-gray-900">{allTours.length} tour hiện có</h2>
+                <p className="text-gray-600 mt-1">Hãy chọn hành trình phù hợp nhất với bạn</p>
               </div>
-              <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+              <select className="px-5 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-medium text-gray-700">
                 <option>Sắp xếp: Gợi ý</option>
                 <option>Giá: Tăng dần</option>
                 <option>Giá: Giảm dần</option>
-                <option>Đánh giá: Cao nhất</option>
-                <option>Thời lượng: Ngắn đến dài</option>
+                <option>Đánh giá cao nhất</option>
               </select>
             </div>
 
-            {/* Lưới hiển thị tour */}
+            {/* Tour Cards */}
             <div className="grid md:grid-cols-2 gap-6">
               {allTours.map(tour => (
-                <div 
-                  key={tour.id} 
-                  className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+                <div
+                  key={tour.id}
+                  className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
                 >
-                  <div className="relative h-64 overflow-hidden">
-                    <img 
-                      src={tour.image} 
+                  <div className="relative h-72 overflow-hidden">
+                    <img
+                      src={tour.image}
                       alt={tour.title}
-                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
-                    <div className="absolute top-4 right-4 bg-orange-500 text-white px-3 py-1 rounded-full font-semibold">
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+                    <div className="absolute top-4 right-4 bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-4 py-2 rounded-full font-bold text-lg shadow-lg">
                       ${tour.price}
                     </div>
+
                     {tour.featured && (
-                      <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full font-semibold text-sm flex items-center gap-1">
+                      <div className="absolute top-4 left-4 bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
                         <TrendingUp size={14} />
-                        Nổi bật
+                        NỔI BẬT
                       </div>
                     )}
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="flex items-center gap-1 mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} size={16} className={i < tour.rating ? "fill-orange-500 text-orange-500" : "text-gray-300"} />
-                      ))}
-                      <span className="text-sm text-gray-600 ml-2">({tour.reviews} đánh giá)</span>
-                    </div>
-                    
-                    <h3 className="text-xl font-bold mb-2 hover:text-orange-500 cursor-pointer">
-                      {tour.title}
-                    </h3>
 
-                    <div className="mb-3">
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                        tour.difficulty === 'Dễ' ? 'bg-green-100 text-green-700' :
-                        tour.difficulty === 'Trung bình' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
+                    <button
+                      onClick={() => toggleLike(tour.id)}
+                      className={`absolute bottom-4 right-4 p-2.5 rounded-full transition-all ${likedTours.includes(tour.id)
+                          ? 'bg-red-500 text-white shadow-lg shadow-red-500/50'
+                          : 'bg-white/90 backdrop-blur-sm text-gray-600'
+                        }`}
+                    >
+                      <Heart size={18} className={likedTours.includes(tour.id) ? 'fill-current' : ''} />
+                    </button>
+
+                    <div className="absolute bottom-4 left-4">
+                      <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold shadow-lg ${tour.difficulty === 'Dễ' ? 'bg-gradient-to-r from-green-400 to-green-500 text-white' :
+                          tour.difficulty === 'Trung bình' ? 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white' :
+                            'bg-gradient-to-r from-red-500 to-pink-500 text-white'
+                        }`}>
                         {tour.difficulty}
                       </span>
                     </div>
-                    
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
-                      <div className="flex items-center gap-1">
-                        <Clock size={16} />
-                        <span>{tour.duration}</span>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="flex items-center gap-2 text-gray-500 text-sm mb-3">
+                      <MapPin size={16} className="text-cyan-500" />
+                      <span className="font-medium">{tour.location}</span>
+                    </div>
+
+                    <h3
+                      onClick={() => navigate('/tour')}
+                      className="text-xl font-bold text-gray-900 mb-3 group-hover:text-cyan-600 transition-colors cursor-pointer hover:underline"
+                    >
+                      {tour.title}
+                    </h3>
+
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="flex items-center gap-1 bg-yellow-50 px-2.5 py-1.5 rounded-lg">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} size={14} className={i < tour.rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-200 text-gray-200"} />
+                        ))}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Users size={16} />
-                        <span>{tour.groupSize}</span>
+                      <span className="text-sm text-gray-600 font-medium">({tour.reviews})</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-5 pb-5 border-b border-gray-100">
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="p-2 bg-cyan-50 rounded-lg">
+                          <Clock size={16} className="text-cyan-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Thời lượng</p>
+                          <p className="font-semibold text-gray-900">{tour.duration}</p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <MapPin size={16} />
-                        <span>{tour.location}</span>
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                          <Users size={16} className="text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Nhóm</p>
+                          <p className="font-semibold text-gray-900">{tour.groupSize}</p>
+                        </div>
                       </div>
                     </div>
-                    
-                    <button 
-                      onClick={() => handleBookNow(tour)}
-                      className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+
+                    <button
+                      onClick={() => handleBookTour(tour)}
+                      className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3.5 rounded-xl font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all flex items-center justify-center gap-2 group"
                     >
-                      Đặt ngay
-                      <ChevronRight size={18} />
+                      <span>Đặt ngay</span>
+                      <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Phân trang */}
+            {/* Pagination */}
             <div className="flex justify-center items-center gap-2 mt-12">
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button className="px-5 py-3 border-2 border-gray-200 rounded-xl hover:border-cyan-500 hover:text-cyan-600 transition-colors font-medium">
                 Trước
               </button>
-              {[1, 2, 3, 4, 5].map(page => (
-                <button 
+              {[1, 2, 3].map(page => (
+                <button
                   key={page}
-                  className={`px-4 py-2 rounded-lg ${
-                    page === 1 
-                      ? 'bg-orange-500 text-white' 
-                      : 'border border-gray-300 hover:bg-gray-50'
-                  }`}
+                  className={`px-5 py-3 rounded-xl font-medium transition-all ${page === 1
+                      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/30'
+                      : 'border-2 border-gray-200 hover:border-cyan-500 hover:text-cyan-600'
+                    }`}
                 >
                   {page}
                 </button>
               ))}
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button className="px-5 py-3 border-2 border-gray-200 rounded-xl hover:border-cyan-500 hover:text-cyan-600 transition-colors font-medium">
                 Sau
               </button>
             </div>
