@@ -7,23 +7,23 @@ const Testimonials = () => {
   const testimonials = [
     {
       id: 1,
-      name: "Diana Carter",
+      name: "Đoàn Quốc Hòa",
       role: "Khách hàng của chúng tôi",
-      text: "Có nhiều biến thể của các đoạn văn có sẵn nhưng đa số đã bị thay đổi dưới một số hình thức, bằng sự hài hước được chèn vào hoặc các từ ngẫu nhiên.",
+      text: "Trải nghiệm thật tuyệt vời! Hướng dẫn viên rất am hiểu và phong cảnh thì ngoạn mục. Rất đáng để thử! Mọi thứ đều được tổ chức chuyên nghiệp.",
       rating: 5,
       image: "https://i.pravatar.cc/200?img=1"
     },
     {
       id: 2,
-      name: "Brandon Wigfall",
+      name: "Hàng Phi Nhật",
       role: "Khách hàng của chúng tôi",
-      text: "Có nhiều biến thể của các đoạn văn có sẵn nhưng đa số đã bị thay đổi dưới một số hình thức, bằng sự hài hước được chèn vào hoặc các từ ngẫu nhiên.",
+      text: "Trải nghiệm thật tuyệt vời!",
       rating: 5,
       image: "https://i.pravatar.cc/200?img=13"
     },
     {
       id: 3,
-      name: "Sarah Johnson",
+      name: "Lê Văn An",
       role: "Khách hàng của chúng tôi",
       text: "Trải nghiệm thật tuyệt vời! Hướng dẫn viên rất am hiểu và phong cảnh thì ngoạn mục. Rất đáng để thử! Mọi thứ đều được tổ chức chuyên nghiệp.",
       rating: 5,
@@ -31,7 +31,7 @@ const Testimonials = () => {
     },
     {
       id: 4,
-      name: "Michael Chen",
+      name: "Nguyễn Xuân Tiến",
       role: "Khách hàng của chúng tôi",
       text: "Chuyến leo núi tuyệt nhất mà tôi từng tham gia. Mọi thứ đều được tổ chức chuyên nghiệp và nhóm vừa phải. Tôi chắc chắn sẽ quay lại!",
       rating: 5,
