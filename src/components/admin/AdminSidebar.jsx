@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Thêm import này
+import { useAuth } from '../../contexts/AuthContext';
 import {
   MapPin,
   LogOut,
@@ -15,9 +17,12 @@ const AdminSidebar = ({
   setActivePage,
   isSidebarOpen,
   setIsSidebarOpen,
-  handleLogout, 
-  isScrolled = false, 
+  isScrolled = false, // giữ như props
 }) => {
+  const { user, isAuthenticated, logout } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false); // import useState để dùng
+  const navigate = useNavigate(); // import useNavigate để dùng
+
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Bảng điều khiển' },
     { id: 'tours', icon: MapPin, label: 'Tour du lịch' },
@@ -26,9 +31,22 @@ const AdminSidebar = ({
     { id: 'settings', icon: Settings, label: 'Cài đặt' }
   ];
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setShowUserMenu(false);
+      navigate('/');
+      window.location.reload();
+    } catch (error) {
+      console.error('Logout error:', error);
+      setShowUserMenu(false);
+      navigate('/');
+    }
+  };
+  
   return (
     <>
-      {/* Overlay trên mobile */}
+    {/* Overlay trên mobile */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
@@ -103,12 +121,8 @@ const AdminSidebar = ({
               </div>
             </div>
 
-            {}
             <button
-              onClick={async () => {
-                setIsSidebarOpen(false);
-                await handleLogout();
-              }}
+              onClick={handleLogout}
               className={`w-full text-left px-4 py-3 font-medium rounded-lg transition flex items-center gap-2 ${
                 isScrolled
                   ? 'text-red-600 hover:bg-red-50'

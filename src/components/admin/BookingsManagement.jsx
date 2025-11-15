@@ -6,7 +6,7 @@ import {
   CheckCircle, 
   Clock, 
   XCircle, 
-  DollarSign,
+  WalletCards,
   Search,
   Download,
   Eye,
@@ -410,7 +410,7 @@ const BookingManagement = () => {
           </div>
           <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-blue-500">
             <div className="flex items-center gap-2 text-blue-600 mb-2">
-              <DollarSign size={24} />
+              <WalletCards size={24} />
               <span className="font-semibold">Doanh thu</span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.revenue)}</p>

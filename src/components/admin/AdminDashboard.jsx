@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DollarSign, ShoppingBag, Users, MapPin } from 'lucide-react';
+import { WalletCards, ShoppingBag, Users, MapPin } from 'lucide-react';
 
 const AdminDashboard = () => {
   return (
@@ -12,12 +12,12 @@ const AdminDashboard = () => {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="text-orange-500" size={24} />
+              <WalletCards className="text-orange-500" size={24} />
             </div>
             <span className="text-green-500 text-sm font-semibold">+12%</span>
           </div>
           <h3 className="text-gray-600 text-sm mb-1">Tổng doanh thu</h3>
-          <p className="text-2xl font-bold">$45,231</p>
+          <p className="text-2xl font-bold">45,231 đ</p>
         </div>
 
         {/* Tổng số lượt đặt tour */}
@@ -73,9 +73,9 @@ const AdminDashboard = () => {
             </thead>
             <tbody>
               {[
-                { name: 'John Doe', tour: 'Hành trình Matterhorn', date: '15 Tháng 6, 2025', amount: '$299', status: 'Đã xác nhận' },
-                { name: 'Jane Smith', tour: 'Vòng quanh Mont Blanc', date: '20 Tháng 6, 2025', amount: '$499', status: 'Chờ xử lý' },
-                { name: 'Mike Johnson', tour: 'Phiêu lưu Dolomites', date: '25 Tháng 6, 2025', amount: '$399', status: 'Đã xác nhận' }
+                { name: 'John Doe', tour: 'Hành trình Matterhorn', date: '15 Tháng 6, 2025', amount: 'đ299', status: 'Đã xác nhận' },
+                { name: 'Jane Smith', tour: 'Vòng quanh Mont Blanc', date: '20 Tháng 6, 2025', amount: 'đ499', status: 'Chờ xử lý' },
+                { name: 'Mike Johnson', tour: 'Phiêu lưu Dolomites', date: '25 Tháng 6, 2025', amount: 'đ399', status: 'Đã xác nhận' }
               ].map((booking, idx) => (
                 <tr key={idx} className="border-b hover:bg-gray-50">
                   <td className="py-3 px-4">{booking.name}</td>

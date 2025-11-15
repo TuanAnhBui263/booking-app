@@ -13,7 +13,7 @@ import {
   Trash2,
   MapPin,
   Clock,
-  DollarSign,
+  WalletCards,
   Users,
   Star,
   Eye,
@@ -976,8 +976,8 @@ export default function ToursManagement() {
                         <span className="text-sm text-gray-600">({t.totalReviews || 0})</span>
                       </div>
                       <div className="flex items-center gap-1 text-blue-600 font-bold">
-                        <DollarSign size={18} />
-                        <span>{t.price?.toLocaleString()}</span>
+                        <WalletCards size={18} />
+                        <span>{t.price?.toLocaleString() } đ</span>
                       </div>
                     </div>
 

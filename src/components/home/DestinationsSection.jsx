@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { destinationService } from '../../services/destinationService';
-import { MapPin, Star, DollarSign, Compass, ChevronLeft, ChevronRight, Loader } from 'lucide-react';
+import { MapPin, Star, WalletCards, Compass, ChevronLeft, ChevronRight, Loader } from 'lucide-react';
 
 const DestinationsSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -189,7 +189,7 @@ const DestinationsSection = () => {
                       {/* Price & Tours */}
                       <div className="flex items-center justify-center gap-6 text-sm">
                         <div className="flex items-center gap-2 text-gray-700">
-                          <DollarSign size={18} className="text-cyan-500" />
+                          <WalletCards size={18} className="text-cyan-500" />
                           <span>Từ <span className="font-bold">
                             {new Intl.NumberFormat('vi-VN', {
                               style: 'currency',

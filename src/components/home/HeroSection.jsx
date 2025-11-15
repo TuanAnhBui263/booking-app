@@ -71,8 +71,8 @@ const HeroSection = () => {
                       <option value="danang">Đà Nẵng</option>
                       <option value="nhatrang">Nha Trang</option>
                     </select>
-                    <div className="text-xs text-gray-500 mt-2 pl-14">Tour trong nước</div>
                   </div>
+                  <div className="text-xs text-gray-500 mt-2 pl-14">Tour trong nước</div>
                 </div>
 
                 {/* Journey Date */}
@@ -88,8 +88,8 @@ const HeroSection = () => {
                       onChange={(e) => setFormData({...formData, departDate: e.target.value})}
                       className="w-full pl-14 pr-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all font-medium text-gray-700 shadow-sm hover:border-cyan-300 cursor-pointer"
                     />
-                    <div className="text-xs text-gray-500 mt-2 pl-14">Chọn ngày đi</div>
                   </div>
+                  <div className="text-xs text-gray-500 mt-2 pl-14">Chọn ngày đi</div>
                 </div>
 
                 {/* Return Date */}
@@ -105,8 +105,8 @@ const HeroSection = () => {
                       onChange={(e) => setFormData({...formData, returnDate: e.target.value})}
                       className="w-full pl-14 pr-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all font-medium text-gray-700 shadow-sm hover:border-cyan-300 cursor-pointer"
                     />
-                    <div className="text-xs text-gray-500 mt-2 pl-14">Chọn ngày về</div>
                   </div>
+                  <div className="text-xs text-gray-500 mt-2 pl-14">Chọn ngày về</div>
                 </div>
 
                 {/* Guests */}
@@ -125,8 +125,8 @@ const HeroSection = () => {
                         <option key={num} value={num}>{num} người</option>
                       ))}
                     </select>
-                    <div className="text-xs text-gray-500 mt-2 pl-14">Người lớn</div>
                   </div>
+                    <div className="text-xs text-gray-500 mt-2 pl-14">Người lớn</div>
                 </div>
               </div>
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DollarSign, Plus, ChevronRight } from 'lucide-react';
+import { WalletCards, Plus, ChevronRight } from 'lucide-react';
 const SettingsPage = () => {
     return (
       <div>
@@ -121,7 +121,7 @@ const SettingsPage = () => {
               <div className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-100 rounded flex items-center justify-center">
-                    <DollarSign className="text-blue-600" size={20} />
+                    <WalletCards className="text-blue-600" size={20} />
                   </div>
                   <div>
                     <p className="font-medium">VNPay</p>
@@ -133,7 +133,7 @@ const SettingsPage = () => {
               <div className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-purple-100 rounded flex items-center justify-center">
-                    <DollarSign className="text-purple-600" size={20} />
+                    <WalletCards className="text-purple-600" size={20} />
                   </div>
                   <div>
                     <p className="font-medium">PayPal</p>

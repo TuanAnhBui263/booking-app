@@ -276,10 +276,7 @@ const CheckoutPage = () => {
               </>
             ) : (
               <>
-                Hoàn tất thanh toán - {new Intl.NumberFormat('vi-VN', {
-                  style: 'currency',
-                  currency: 'VND'
-                }).format((tourData.price || tourData.Price || 0) * bookingData.numberOfGuests)}
+                Hoàn tất thanh toán
                 <ChevronRight size={20}/>
               </>
             )}
