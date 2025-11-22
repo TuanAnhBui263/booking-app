@@ -21,7 +21,7 @@ import {
   Mail,
   Award,
   Shield,
-  DollarSign,
+  WalletCards,
   Loader
 } from 'lucide-react';
 
@@ -554,7 +554,7 @@ const TourDetailPage = () => {
                     <span>Hướng dẫn viên chuyên nghiệp</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-600">
-                    <DollarSign className="text-blue-500" size={16} />
+                    <WalletCards className="text-blue-500" size={16} />
                     <span>Giá tốt nhất</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-600">

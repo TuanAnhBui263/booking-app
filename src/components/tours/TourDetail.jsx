@@ -5,7 +5,7 @@ import {
   ArrowLeft,
   MapPin,
   Clock,
-  DollarSign,
+  WalletCards,
   Users,
   Star,
   Calendar,
@@ -423,8 +423,8 @@ export default function TourDetail() {
                 <div>
                   <p className="text-gray-600 text-sm">Price per person</p>
                   <div className="flex items-center gap-1 text-3xl font-bold text-blue-600">
-                    <DollarSign size={28} />
-                    <span>{tour.price.toLocaleString()}</span>
+                    <WalletCards size={28} />
+                    <span>{tour.price.toLocaleString()} đ</span>
                   </div>
                 </div>
               </div>

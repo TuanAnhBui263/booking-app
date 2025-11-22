@@ -12,7 +12,7 @@ import {
   Clock,
   Star,
   ChevronRight,
-  DollarSign,
+  WalletCards,
   Mountain,
   TrendingUp,
   Award,
@@ -271,7 +271,7 @@ const TourListPage = () => {
                 {/* Price Range */}
                 <div className="mb-6 pb-6 border-b border-gray-100">
                   <h3 className="font-semibold mb-4 flex items-center gap-2 text-gray-900">
-                    <DollarSign size={18} className="text-cyan-600" />
+                    <WalletCards size={18} className="text-cyan-600" />
                     Khoảng giá
                   </h3>
                   <input
@@ -281,8 +281,8 @@ const TourListPage = () => {
                     className="w-full accent-cyan-600 h-2 bg-gray-200 rounded-lg"
                   />
                   <div className="flex justify-between text-sm text-gray-600 mt-3">
-                    <span className="font-medium">$0</span>
-                    <span className="font-medium">$1000+</span>
+                    <span className="font-medium">0 đ</span>
+                    <span className="font-medium">1000+ đ</span>
                   </div>
                 </div>
 

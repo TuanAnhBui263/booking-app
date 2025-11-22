@@ -5,7 +5,7 @@ import {
   Calendar, 
   Users, 
   Clock, 
-  DollarSign,
+  WalletCards,
   CheckCircle,
   XCircle,
   AlertCircle,
@@ -246,7 +246,7 @@ const BookingsContent = () => {
                       <span>Ngày tour: {formatDate(booking.tourDate || booking.TourDate)}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <DollarSign size={16} className="text-gray-400 flex-shrink-0" />
+                      <WalletCards size={16} className="text-gray-400 flex-shrink-0" />
                       <span className="font-semibold text-green-600">
                         {formatCurrency(booking.totalAmount || booking.TotalAmount)}
                       </span>

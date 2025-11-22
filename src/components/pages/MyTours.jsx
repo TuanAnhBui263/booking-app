@@ -5,7 +5,7 @@ import {
   Calendar, 
   Clock, 
   Users, 
-  DollarSign,
+  WalletCards,
   Filter,
   Search,
   ChevronLeft,
@@ -414,7 +414,7 @@ const MyTours = () => {
                   </div>
 
                   <div className="flex items-start">
-                    <DollarSign className="w-5 h-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+                    <WalletCards className="w-5 h-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-xs text-gray-500">Tổng doanh thu</p>
                       <p className="text-sm font-medium text-green-600">
