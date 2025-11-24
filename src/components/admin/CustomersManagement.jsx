@@ -19,29 +19,47 @@ import {
   User
 } from 'lucide-react';
 
-// Role enum
+// Role enum - FIXED to match backend
 const UserRole = {
-  Admin: 0,
-  Manager: 1,
-  Staff: 2,
-  Guide: 3,
-  Customer: 4
+  Customer: 0,  
+  Guide: 1,    
+  Staff: 2,     
+  Manager: 3,   
+  Admin: 4      
+};
+
+// Convert Roles array to role number
+const getRoleFromRolesArray = (roles) => {
+  if (!roles || !Array.isArray(roles) || roles.length === 0) {
+    return UserRole.Customer; // Default
+  }
+  
+  const roleString = roles[0]; // Get first role
+  const roleMap = {
+    'Customer': UserRole.Customer,
+    'Guide': UserRole.Guide,
+    'Staff': UserRole.Staff,
+    'Manager': UserRole.Manager,
+    'Admin': UserRole.Admin
+  };
+  
+  return roleMap[roleString] ?? UserRole.Customer;
 };
 
 const getRoleLabel = (role) => {
-  const labels = ['Admin', 'Manager', 'Staff', 'Guide', 'Customer'];
+  const labels = ['Customer', 'Guide', 'Staff', 'Manager', 'Admin'];
   return labels[role] || 'Customer';
 };
 
 const getRoleBadge = (role) => {
   const badges = {
-    0: { label: 'Admin', class: 'bg-red-100 text-red-800' },
-    1: { label: 'Manager', class: 'bg-purple-100 text-purple-800' },
+    0: { label: 'Customer', class: 'bg-gray-100 text-gray-800' },
+    1: { label: 'Guide', class: 'bg-green-100 text-green-800' },
     2: { label: 'Staff', class: 'bg-blue-100 text-blue-800' },
-    3: { label: 'Guide', class: 'bg-green-100 text-green-800' },
-    4: { label: 'Customer', class: 'bg-gray-100 text-gray-800' }
+    3: { label: 'Manager', class: 'bg-purple-100 text-purple-800' },
+    4: { label: 'Admin', class: 'bg-red-100 text-red-800' }
   };
-  return badges[role] || badges[4];
+  return badges[role] || badges[0];
 };
 
 const CustomersManagement = () => {
@@ -68,13 +86,13 @@ const CustomersManagement = () => {
     avgSpending: 0
   });
 
-  // Form state
+  // Form state - DEFAULT TO CUSTOMER (0)
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phoneNumber: '',
     password: '',
-    role: 4, // Default to Customer
+    role: UserRole.Customer, // 0
     isActive: true,
     address: '',
     dateOfBirth: '',
@@ -91,10 +109,16 @@ const CustomersManagement = () => {
     try {
       setLoading(true);
       
+      // Convert role number to role string for API
+      let roleParam = null;
+      if (roleFilter !== '') {
+        roleParam = getRoleLabel(parseInt(roleFilter));
+      }
+      
       const response = await userService.getAllUsers(
         currentPage, 
         pageSize, 
-        roleFilter || null, 
+        roleParam, 
         statusFilter !== '' ? (statusFilter === 'true') : null
       );
       
@@ -127,7 +151,7 @@ const CustomersManagement = () => {
       setStats({
         total: total,
         active: activeUsers.length,
-        avgSpending: 0 // This would need to come from booking data
+        avgSpending: 0
       });
       
     } catch (error) {
@@ -185,16 +209,25 @@ const CustomersManagement = () => {
         setLoading(true);
         
         const userId = user.Id || user.id;
-        const fullUser = await userService.getUserById(userId);
+        const response = await userService.getUserById(userId);
+        
+        console.log('Full user response:', response);
+        
+        const fullUser = response.Data || response.data || response;
         
         console.log('Full user data:', fullUser);
+        
+        // Convert Roles array to role number
+        const roleValue = fullUser.Roles 
+          ? getRoleFromRolesArray(fullUser.Roles)
+          : (fullUser.Role !== undefined ? fullUser.Role : fullUser.role);
         
         setFormData({
           fullName: fullUser.FullName || fullUser.fullName || '',
           email: fullUser.Email || fullUser.email || '',
           phoneNumber: fullUser.PhoneNumber || fullUser.phoneNumber || '',
-          password: '', // Never populate password
-          role: fullUser.Role !== undefined ? fullUser.Role : fullUser.role,
+          password: '',
+          role: roleValue,
           isActive: fullUser.IsActive !== undefined ? fullUser.IsActive : fullUser.isActive,
           address: fullUser.Address || fullUser.address || '',
           dateOfBirth: fullUser.DateOfBirth || fullUser.dateOfBirth || '',
@@ -209,12 +242,13 @@ const CustomersManagement = () => {
         setLoading(false);
       }
     } else if (mode === 'create') {
+      // DEFAULT TO CUSTOMER (0)
       setFormData({
         fullName: '',
         email: '',
         phoneNumber: '',
         password: '',
-        role: 4,
+        role: UserRole.Customer, // 0
         isActive: true,
         address: '',
         dateOfBirth: '',
@@ -229,12 +263,13 @@ const CustomersManagement = () => {
   const closeModal = () => {
     setShowModal(false);
     setSelectedUser(null);
+    // DEFAULT TO CUSTOMER (0)
     setFormData({
       fullName: '',
       email: '',
       phoneNumber: '',
       password: '',
-      role: 4,
+      role: UserRole.Customer, // 0
       isActive: true,
       address: '',
       dateOfBirth: '',
@@ -246,73 +281,201 @@ const CustomersManagement = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
-    if (!formData.email.trim()) {
+    // Full Name validation
+    if (!formData.fullName || !formData.fullName.trim()) {
+      newErrors.fullName = 'Full name is required';
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = 'Full name must be at least 2 characters';
+    }
+    
+    // Email validation
+    if (!formData.email || !formData.email.trim()) {
       newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        newErrors.email = 'Please enter a valid email address';
+      }
     }
     
-    if (modalMode === 'create' && !formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password && formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    // Phone validation
+    if (!formData.phoneNumber || !formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Phone number is required';
+    } else if (formData.phoneNumber.trim().length < 10) {
+      newErrors.phoneNumber = 'Phone number must be at least 10 digits';
     }
     
-    if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Phone number is required';
+    // Password validation - STRICT RULES
+    if (modalMode === 'create') {
+      if (!formData.password) {
+        newErrors.password = 'Password is required';
+      } else {
+        const password = formData.password;
+        
+        if (password.length < 8) {
+          newErrors.password = 'Password must be at least 8 characters';
+        } else if (password.length > 100) {
+          newErrors.password = 'Password must not exceed 100 characters';
+        } else if (!/[A-Z]/.test(password)) {
+          newErrors.password = 'Password must contain at least one uppercase letter';
+        } else if (!/[a-z]/.test(password)) {
+          newErrors.password = 'Password must contain at least one lowercase letter';
+        } else if (!/[0-9]/.test(password)) {
+          newErrors.password = 'Password must contain at least one number';
+        } else if (!/[^A-Za-z0-9]/.test(password)) {
+          newErrors.password = 'Password must contain at least one special character';
+        }
+      }
+    } else if (formData.password) {
+      const password = formData.password;
+      
+      if (password.length < 8) {
+        newErrors.password = 'Password must be at least 8 characters';
+      } else if (password.length > 100) {
+        newErrors.password = 'Password must not exceed 100 characters';
+      } else if (!/[A-Z]/.test(password)) {
+        newErrors.password = 'Password must contain at least one uppercase letter';
+      } else if (!/[a-z]/.test(password)) {
+        newErrors.password = 'Password must contain at least one lowercase letter';
+      } else if (!/[0-9]/.test(password)) {
+        newErrors.password = 'Password must contain at least one number';
+      } else if (!/[^A-Za-z0-9]/.test(password)) {
+        newErrors.password = 'Password must contain at least one special character';
+      }
+    }
+    
+    // Role validation
+    if (formData.role === undefined || formData.role === null || formData.role === '') {
+      newErrors.role = 'Please select a role';
+    }
+    
+    // Date of birth validation (optional but if provided should be valid)
+    if (formData.dateOfBirth) {
+      const dob = new Date(formData.dateOfBirth);
+      const now = new Date();
+      if (dob >= now) {
+        newErrors.dateOfBirth = 'Date of birth must be in the past';
+      }
+      const age = (now - dob) / (1000 * 60 * 60 * 24 * 365);
+      if (age > 150) {
+        newErrors.dateOfBirth = 'Please enter a valid date of birth';
+      }
+    }
     
     setErrors(newErrors);
+    
+    if (Object.keys(newErrors).length > 0) {
+      console.log('Validation errors:', newErrors);
+    }
+    
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      console.log('Form validation failed:', errors);
+      return;
+    }
     
     try {
       setLoading(true);
       
+      // Prepare data - keeping camelCase, userService will convert
       const submitData = {
-        ...formData,
-        role: parseInt(formData.role)
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
+        role: parseInt(formData.role),
+        isActive: formData.isActive,
+        address: formData.address.trim() || null,
+        dateOfBirth: formData.dateOfBirth || null,
+        nationality: formData.nationality.trim() || null
       };
       
-      // Remove password from update if empty
-      if (modalMode === 'edit' && !submitData.password) {
-        delete submitData.password;
+      // Add password for create, or only if provided for update
+      if (modalMode === 'create') {
+        if (!formData.password) {
+          alert('Password is required for new users');
+          setLoading(false);
+          return;
+        }
+        submitData.password = formData.password;
+      } else if (modalMode === 'edit' && formData.password) {
+        submitData.password = formData.password;
       }
       
+      console.log('Submitting form data:', submitData);
+      
+      let result;
       if (modalMode === 'create') {
-        await userService.createUser(submitData);
+        result = await userService.createUser(submitData);
+        console.log('User created successfully:', result);
         alert('User created successfully!');
       } else if (modalMode === 'edit') {
         const userId = selectedUser.Id || selectedUser.id;
-        await userService.updateUser(userId, submitData);
+        result = await userService.updateUser(userId, submitData);
+        console.log('User updated successfully:', result);
         alert('User updated successfully!');
       }
       
       closeModal();
-      fetchUsers();
+      await fetchUsers();
+      
     } catch (error) {
       console.error('Error saving user:', error);
       
-      let errorMessage = 'Failed to save user';
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        if (typeof errorData === 'string') {
-          errorMessage = errorData;
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.errors) {
-          const validationErrors = {};
-          Object.keys(errorData.errors).forEach(key => {
-            validationErrors[key.toLowerCase()] = errorData.errors[key][0];
+      // Handle different error formats
+      let errorMessage = 'Failed to save user. Please try again.';
+      
+      if (error.response) {
+        const { status, data, validationErrors } = error.response;
+        
+        console.log('Error details:', { status, data, validationErrors });
+        
+        // Handle validation errors
+        if (validationErrors) {
+          const fieldErrors = {};
+          Object.keys(validationErrors).forEach(key => {
+            // Convert PascalCase to camelCase for form fields
+            const fieldName = key.charAt(0).toLowerCase() + key.slice(1);
+            const messages = Array.isArray(validationErrors[key]) 
+              ? validationErrors[key] 
+              : [validationErrors[key]];
+            fieldErrors[fieldName] = messages[0];
           });
-          setErrors(validationErrors);
-          errorMessage = 'Please fix validation errors';
+          
+          setErrors(fieldErrors);
+          
+          const errorList = Object.entries(fieldErrors)
+            .map(([field, msg]) => `${field}: ${msg}`)
+            .join('\n');
+          
+          errorMessage = 'Validation errors:\n' + errorList;
         }
-      } else if (error.message) {
+        // Handle specific status codes
+        else if (status === 400 && data) {
+          if (typeof data === 'string') {
+            errorMessage = data;
+          } else if (data.message || data.Message) {
+            errorMessage = data.message || data.Message;
+          } else if (data.title) {
+            errorMessage = data.title;
+          }
+        }
+        else if (status === 409) {
+          errorMessage = 'A user with this email already exists.';
+        }
+        else if (status === 403) {
+          errorMessage = 'You do not have permission to perform this action.';
+        }
+        else if (status === 404) {
+          errorMessage = 'User not found.';
+        }
+      }
+      // Handle network errors
+      else if (error.message) {
         errorMessage = error.message;
       }
       
@@ -519,15 +682,23 @@ const CustomersManagement = () => {
                   </thead>
                   <tbody>
                     {users.map((user) => {
+                      // Convert Roles array to role number
+                      const roleValue = user.Roles 
+                        ? getRoleFromRolesArray(user.Roles)
+                        : (user.Role !== undefined ? user.Role : user.role);
+                      
                       const u = {
                         id: user.Id || user.id,
                         fullName: user.FullName || user.fullName,
                         email: user.Email || user.email,
                         phoneNumber: user.PhoneNumber || user.phoneNumber,
-                        role: user.Role !== undefined ? user.Role : user.role,
+                        role: roleValue,
                         isActive: user.IsActive !== undefined ? user.IsActive : user.isActive,
                         createdAt: user.CreatedAt || user.createdAt
                       };
+
+                      // DEBUG: Log để kiểm tra role value
+                      console.log(`User: ${u.fullName}, Roles array: ${user.Roles}, Role value: ${u.role}, Role label: ${getRoleLabel(u.role)}`);
 
                       const initials = u.fullName
                         ? u.fullName.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -711,12 +882,52 @@ const CustomersManagement = () => {
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder={modalMode === 'edit' ? 'Leave empty to keep current password' : ''}
+                  placeholder={modalMode === 'edit' ? 'Leave empty to keep current password' : 'Enter password'}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 ${
                     errors.password ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
                 {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                
+                {/* Password Requirements Hint */}
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs font-semibold text-blue-800 mb-1">Password Requirements:</p>
+                  <ul className="text-xs text-blue-700 space-y-0.5">
+                    <li className="flex items-center gap-1">
+                      <span className={formData.password?.length >= 8 ? 'text-green-600' : ''}>
+                        {formData.password?.length >= 8 ? '✓' : '•'}
+                      </span>
+                      At least 8 characters
+                    </li>
+                    <li className="flex items-center gap-1">
+                      <span className={/[A-Z]/.test(formData.password) ? 'text-green-600' : ''}>
+                        {/[A-Z]/.test(formData.password) ? '✓' : '•'}
+                      </span>
+                      At least one uppercase letter (A-Z)
+                    </li>
+                    <li className="flex items-center gap-1">
+                      <span className={/[a-z]/.test(formData.password) ? 'text-green-600' : ''}>
+                        {/[a-z]/.test(formData.password) ? '✓' : '•'}
+                      </span>
+                      At least one lowercase letter (a-z)
+                    </li>
+                    <li className="flex items-center gap-1">
+                      <span className={/[0-9]/.test(formData.password) ? 'text-green-600' : ''}>
+                        {/[0-9]/.test(formData.password) ? '✓' : '•'}
+                      </span>
+                      At least one number (0-9)
+                    </li>
+                    <li className="flex items-center gap-1">
+                      <span className={/[^A-Za-z0-9]/.test(formData.password) ? 'text-green-600' : ''}>
+                        {/[^A-Za-z0-9]/.test(formData.password) ? '✓' : '•'}
+                      </span>
+                      At least one special character (!@#$%^&*)
+                    </li>
+                  </ul>
+                  <p className="text-xs text-blue-600 mt-2 italic">
+                    Example: MyP@ssw0rd123
+                  </p>
+                </div>
               </div>
 
               {/* Role */}

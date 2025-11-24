@@ -41,8 +41,21 @@ export const apiRequest = async (endpoint, options = {}) => {
     headers,
   };
 
+  console.log('API Request:', {
+    method: config.method || 'GET',
+    url,
+    hasToken: !!token,
+    body: options.body ? JSON.parse(options.body) : null
+  });
+
   try {
     const response = await fetch(url, config);
+
+    console.log('API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
 
     // Handle 401 Unauthorized - token expired or invalid
     if (response.status === 401) {
@@ -71,22 +84,77 @@ export const apiRequest = async (endpoint, options = {}) => {
       data = await response.text();
     }
 
+    console.log('API Response Data:', data);
+
     // Handle error responses
     if (!response.ok) {
-      const errorMessage = 
-        data?.message || 
-        data?.Message || 
-        data?.error || 
-        data?.Error ||
-        `HTTP error! status: ${response.status}`;
+      console.error('API Error Details:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: data
+      });
+
+      // Extract error message from various possible formats
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      let validationErrors = null;
+
+      if (data) {
+        if (typeof data === 'string') {
+          errorMessage = data;
+        } else if (data.message || data.Message) {
+          errorMessage = data.message || data.Message;
+        } else if (data.title) {
+          errorMessage = data.title;
+          
+          // Check for validation errors (ASP.NET format)
+          if (data.errors) {
+            validationErrors = data.errors;
+            const errorMessages = [];
+            Object.keys(data.errors).forEach(key => {
+              const messages = Array.isArray(data.errors[key]) 
+                ? data.errors[key] 
+                : [data.errors[key]];
+              errorMessages.push(`${key}: ${messages.join(', ')}`);
+            });
+            errorMessage += '\n' + errorMessages.join('\n');
+          }
+        } else if (data.error || data.Error) {
+          errorMessage = data.error || data.Error;
+        }
+      }
+
+      // Create enhanced error object
+      const error = new Error(errorMessage);
+      error.status = response.status;
+      error.response = {
+        status: response.status,
+        statusText: response.statusText,
+        data: data,
+        validationErrors: validationErrors
+      };
       
-      throw new Error(errorMessage);
+      throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('API Request Error:', error);
-    throw error;
+    // If it's already our custom error, rethrow it
+    if (error.response) {
+      throw error;
+    }
+
+    // Handle network errors
+    console.error('Network/Fetch Error:', error);
+    
+    const networkError = new Error(
+      error.message || 'Network error - Please check your connection'
+    );
+    networkError.response = {
+      status: 0,
+      data: null
+    };
+    
+    throw networkError;
   }
 };
 
