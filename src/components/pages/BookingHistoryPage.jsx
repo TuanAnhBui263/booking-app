@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { bookingService } from '../../services/bookingService';
+import { reviewService } from '../../services/reviewService';
 import { 
   Calendar,
   MapPin,
@@ -24,6 +25,50 @@ import {
   UserCheck,
   UserX
 } from 'lucide-react';
+import BookingReviewModal from '../reviews/BookingReviewModal';
+import ReviewStars from '../reviews/ReviewStars';
+
+const STATUS_VALUE_MAP = {
+  0: 'Pending',
+  1: 'Confirmed',
+  2: 'Completed',
+  3: 'Cancelled',
+};
+
+const normalizeStatus = (status) => {
+  if (status === null || status === undefined) return 'Pending';
+
+  if (typeof status === 'number') {
+    return STATUS_VALUE_MAP[status] || 'Pending';
+  }
+
+  const statusString = String(status).trim();
+
+  if (statusString === '') return 'Pending';
+
+  if (!Number.isNaN(Number(statusString))) {
+    return STATUS_VALUE_MAP[Number(statusString)] || 'Pending';
+  }
+
+  const lower = statusString.toLowerCase();
+  const map = {
+    pending: 'Pending',
+    confirmed: 'Confirmed',
+    completed: 'Completed',
+    finished: 'Completed',
+    done: 'Completed',
+    cancelled: 'Cancelled',
+    canceled: 'Cancelled',
+  };
+
+  return map[lower] || statusString;
+};
+
+const getReviewRatingValue = (review) => {
+  if (!review) return 0;
+  const raw = Number(review.rating ?? review.Rating ?? 0);
+  return Number.isNaN(raw) ? 0 : raw;
+};
 
 const BookingHistoryPage = () => {
   const navigate = useNavigate();
@@ -36,6 +81,10 @@ const BookingHistoryPage = () => {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [selectedReview, setSelectedReview] = useState(null);
+  const [reviewModalLoading, setReviewModalLoading] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -71,7 +120,12 @@ const BookingHistoryPage = () => {
         guests: booking.numberOfGuests || booking.NumberOfGuests || booking.guests || booking.Guests || 1,
         duration: booking.duration || booking.Duration || 'N/A',
         totalPrice: booking.totalAmount || booking.TotalAmount || 0,
-        status: booking.status || booking.Status || 'Pending',
+        status: normalizeStatus(
+          booking.status ??
+          booking.Status ??
+          booking.statusName ??
+          booking.StatusName
+        ),
         paymentStatus: booking.paymentStatus || booking.PaymentStatus || 'Unpaid',
         paymentMethod: booking.paymentMethod || booking.PaymentMethod || 'N/A',
         paymentTransactionId: booking.paymentTransactionId || booking.PaymentTransactionId,
@@ -104,6 +158,37 @@ const BookingHistoryPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOpenReviewModal = async (booking) => {
+    setSelectedBooking(booking);
+    setReviewModalOpen(true);
+    setReviewModalLoading(true);
+
+    try {
+      const response = await reviewService.getReviewByBooking(booking.id);
+      const reviewData = response?.data || response?.Data || response || null;
+      setSelectedReview(reviewData);
+    } catch (err) {
+      if (err.status === 404) {
+        setSelectedReview(null);
+      } else {
+        console.error('Failed to fetch review by booking', err);
+        alert(err.message || 'Không thể tải đánh giá hiện có.');
+      }
+    } finally {
+      setReviewModalLoading(false);
+    }
+  };
+
+  const handleCloseReviewModal = () => {
+    setReviewModalOpen(false);
+    setSelectedBooking(null);
+    setSelectedReview(null);
+  };
+
+  const handleReviewCompleted = async () => {
+    await fetchBookings();
   };
 
   // Filter bookings based on active tab and search query
@@ -169,7 +254,8 @@ const BookingHistoryPage = () => {
       }
     };
 
-    const config = statusConfig[status] || statusConfig['Pending'];
+    const normalizedStatus = normalizeStatus(status);
+    const config = statusConfig[normalizedStatus] || statusConfig['Pending'];
     const Icon = config.icon;
 
     return (
@@ -544,6 +630,55 @@ const BookingHistoryPage = () => {
                         </div>
                       )}
 
+                      {/* Review section */}
+                      {booking.status === 'Completed' && (
+                        <div className="mb-4 pb-4 border-b border-gray-200">
+                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div>
+                              <p className="text-sm text-gray-500 mb-2">Đánh giá của bạn</p>
+                              {booking.review && typeof booking.review === 'object' ? (
+                                (() => {
+                                  const ratingValue = getReviewRatingValue(booking.review);
+                                  const reviewTitle = booking.review.title || booking.review.Title;
+                                  const reviewComment = booking.review.comment || booking.review.Comment || 'Đánh giá đã được gửi';
+                                  return (
+                                    <>
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <ReviewStars value={ratingValue} size={18} />
+                                        {ratingValue > 0 && (
+                                          <span className="text-sm font-semibold text-gray-700">
+                                            {ratingValue.toFixed(1)}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {reviewTitle && (
+                                        <p className="font-semibold text-gray-900">
+                                          {reviewTitle}
+                                        </p>
+                                      )}
+                                      <p className="text-gray-600 line-clamp-2">
+                                        {reviewComment}
+                                      </p>
+                                    </>
+                                  );
+                                })()
+                              ) : (
+                                <p className="text-gray-600">
+                                  Bạn chưa chia sẻ trải nghiệm cho chuyến đi này.
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleOpenReviewModal(booking)}
+                              className="inline-flex items-center gap-2 px-4 py-2 border-2 border-yellow-400 text-yellow-600 rounded-lg font-semibold hover:bg-yellow-50 transition-all"
+                            >
+                              <MessageSquare size={18} />
+                              <span>{booking.review ? 'Chỉnh sửa đánh giá' : 'Viết đánh giá'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Actions */}
                       <div className="flex flex-wrap gap-3">
                         <button 
@@ -593,6 +728,14 @@ const BookingHistoryPage = () => {
           )}
         </div>
       </div>
+      <BookingReviewModal
+        isOpen={reviewModalOpen}
+        booking={selectedBooking}
+        existingReview={selectedReview}
+        loadingExisting={reviewModalLoading}
+        onClose={handleCloseReviewModal}
+        onCompleted={handleReviewCompleted}
+      />
     </div>
   );
 };

@@ -87,6 +87,23 @@ export const reviewService = {
     return await apiRequest('/Reviews/pending/count');
   },
 
+  // Admin: search across all reviews (requires elevated role)
+  adminSearchReviews: async (searchParams = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.keys(searchParams).forEach(key => {
+      if (
+        searchParams[key] !== null &&
+        searchParams[key] !== undefined &&
+        searchParams[key] !== ''
+      ) {
+        queryParams.append(key, searchParams[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    const suffix = queryString ? `?${queryString}` : '';
+    return await apiRequest(`/Reviews/admin/search${suffix}`);
+  },
+
   // Admin: Approve review
   approveReview: async (id) => {
     return await apiRequest(`/Reviews/${id}/approve`, {

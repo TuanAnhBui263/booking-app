@@ -5,6 +5,7 @@ import BookingsManagement from '../admin/BookingsManagement';
 import AdminSidebar from '../admin/AdminSidebar';
 import CustomersManagement from '../admin/CustomersManagement';
 import SettingsPage from '../admin/SettingsPage';
+import ReviewsManagement from '../admin/ReviewsManagement';
 import { Menu, Search, Bell, User } from 'lucide-react';
 const AdminPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -20,6 +21,8 @@ const AdminPage = () => {
         return <BookingsManagement />;
       case 'customers':
         return <CustomersManagement />;
+      case 'reviews':
+        return <ReviewsManagement />;
       case 'settings':
         return <SettingsPage />;
       default:

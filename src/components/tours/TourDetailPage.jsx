@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { tourService } from '../../services/tourService';
 import { favoriteService } from '../../services/favoriteService';
 import { useAuth } from '../../contexts/AuthContext';
+import TourReviewsSection from '../reviews/TourReviewsSection';
 import { 
   MapPin, 
   Star, 
@@ -414,6 +415,8 @@ const TourDetailPage = () => {
                 </div>
               </div>
             )}
+
+            <TourReviewsSection tourId={tourId} />
 
           </div>
 

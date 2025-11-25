@@ -9,7 +9,8 @@ import {
   LayoutDashboard,
   ShoppingBag,
   Users as UsersIcon,
-  Settings
+  Settings,
+  MessageSquare
 } from 'lucide-react';
 
 const AdminSidebar = ({
@@ -28,6 +29,7 @@ const AdminSidebar = ({
     { id: 'tours', icon: MapPin, label: 'Tour du lịch' },
     { id: 'bookings', icon: ShoppingBag, label: 'Đơn đặt tour' },
     { id: 'customers', icon: UsersIcon, label: 'Khách hàng' },
+    { id: 'reviews', icon: MessageSquare, label: 'Đánh giá' },
     { id: 'settings', icon: Settings, label: 'Cài đặt' }
   ];
 

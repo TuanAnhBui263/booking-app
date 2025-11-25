@@ -256,10 +256,11 @@ const BookingManagement = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      'Confirmed': { bg: 'bg-green-100', text: 'text-green-700', icon: CheckCircle },
-      'Pending': { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: Clock },
-      'Cancelled': { bg: 'bg-red-100', text: 'text-red-700', icon: XCircle },
-      'Completed': { bg: 'bg-blue-100', text: 'text-blue-700', icon: CheckCircle }
+      'Pending': { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: Clock, label: 'Chờ xử lý' },
+      'Confirmed': { bg: 'bg-green-100', text: 'text-green-700', icon: CheckCircle, label: 'Đã xác nhận' },
+      'Completed': { bg: 'bg-blue-100', text: 'text-blue-700', icon: CheckCircle, label: 'Đã hoàn thành' },
+      'Cancelled': { bg: 'bg-red-100', text: 'text-red-700', icon: XCircle, label: 'Đã hủy' },
+      'NoShow': { bg: 'bg-gray-200', text: 'text-gray-700', icon: UserX, label: 'Không tham gia' }
     };
     
     const config = statusConfig[status] || statusConfig['Pending'];
@@ -268,10 +269,18 @@ const BookingManagement = () => {
     return (
       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${config.bg} ${config.text}`}>
         <Icon size={14} />
-        {status}
+        {config.label}
       </span>
     );
   };
+
+  const STATUS_OPTIONS = [
+    { value: 'Pending', label: 'Chờ xử lý' },
+    { value: 'Confirmed', label: 'Đã xác nhận' },
+    { value: 'Completed', label: 'Đã hoàn thành' },
+    { value: 'Cancelled', label: 'Đã hủy' },
+    { value: 'NoShow', label: 'Không tham gia' }
+  ];
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -574,16 +583,26 @@ const BookingManagement = () => {
                                 <Eye size={16} className="text-cyan-500" />
                                 Xem chi tiết
                               </button>
-                              {booking.status === 'Pending' && (
-                                <button
-                                  onClick={() => handleUpdateStatus(booking.id, 'Confirmed')}
-                                  disabled={actionLoading}
-                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 border-b disabled:opacity-50"
-                                >
-                                  <CheckCircle size={16} className="text-green-500" />
-                                  Xác nhận
-                                </button>
-                              )}
+                              <div className="px-4 py-3 border-b">
+                                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Cập nhật trạng thái</p>
+                                <div className="space-y-2">
+                                  {STATUS_OPTIONS.map(option => (
+                                    <button
+                                      key={option.value}
+                                      onClick={() => handleUpdateStatus(booking.id, option.value)}
+                                      disabled={actionLoading || booking.status === option.value}
+                                      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-between ${
+                                        booking.status === option.value
+                                          ? 'bg-cyan-50 text-cyan-600 border border-cyan-200'
+                                          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                                      } disabled:opacity-60`}
+                                    >
+                                      <span>{option.label}</span>
+                                      {booking.status === option.value && <CheckCircle size={16} />}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
                               <button
                                 onClick={() => handleDeleteBooking(booking.id)}
                                 disabled={actionLoading}
