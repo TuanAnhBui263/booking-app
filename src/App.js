@@ -15,6 +15,7 @@ import ChangePassword from './components/pages/ChangePassword';
 import BookingHistoryPage from './components/pages/BookingHistoryPage';
 import LoginPage from './components/auth/LoginPage';
 import AdminPage from './components/pages/AdminPage';
+import RegisterPage from './components/auth/RegisterPage';
 import PaymentSuccessPage from './components/pages/PaymentSuccessPage';
 import PaymentFailurePage from './components/pages/PaymentFailurePage';
 import TourDetail from './components/tours/TourDetail';
@@ -108,6 +109,8 @@ const App = () => {
 
             {/* Login */}
             <Route path="/login" element={<LoginPage />} />
+              {/* Register */}
+              <Route path="/register" element={<RegisterPage />} />
 
             {/* Admin - Protected */}
             <Route 

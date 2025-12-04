@@ -37,30 +37,39 @@ export const userService = {
     return response;
   },
 
+  // Public user registration (no authentication required)
+  register: async (userData) => {
+    const apiData = {
+      Email: userData.email,
+      Password: userData.password,
+      ConfirmPassword: userData.confirmPassword,
+      FullName: userData.fullName,
+      PhoneNumber: userData.phoneNumber || null,
+      Avatar: userData.avatar || null
+    };
+
+    console.log('Registering user with data:', apiData);
+    
+    const response = await apiRequest('/Users/register', {
+      method: 'POST',
+      body: JSON.stringify(apiData),
+    });
+    
+    console.log('Register response:', response);
+    return response;
+  },
+
   // Create user (Admin only)
   createUser: async (userData) => {
     // Convert camelCase to PascalCase for C# API
     const apiData = {
       FullName: userData.fullName || userData.FullName,
       Email: userData.email || userData.Email,
-      PhoneNumber: userData.phoneNumber || userData.PhoneNumber,
+      PhoneNumber: userData.phoneNumber || userData.PhoneNumber || null,
       Password: userData.password || userData.Password,
-      Role: String(userData.role !== undefined ? userData.role : userData.Role !== undefined ? userData.Role : 4),
-      IsActive: userData.isActive !== undefined ? userData.isActive : userData.IsActive !== undefined ? userData.IsActive : true,
-      Address: userData.address || userData.Address || '',
-      DateOfBirth: userData.dateOfBirth || userData.DateOfBirth || '',
-      Nationality: userData.nationality || userData.Nationality || ''
+      Role: userData.role || userData.Role || 'Customer',
+      Avatar: userData.avatar || userData.Avatar || null
     };
-
-    // Format date if provided
-    if (apiData.DateOfBirth && apiData.DateOfBirth !== '') {
-      try {
-        apiData.DateOfBirth = new Date(apiData.DateOfBirth).toISOString();
-      } catch (e) {
-        console.warn('Invalid date format:', apiData.DateOfBirth);
-        apiData.DateOfBirth = '';
-      }
-    }
 
     console.log('Creating user with data:', apiData);
     
@@ -79,27 +88,14 @@ export const userService = {
     const apiData = {
       FullName: userData.fullName || userData.FullName,
       Email: userData.email || userData.Email,
-      PhoneNumber: userData.phoneNumber || userData.PhoneNumber,
-      Role: String(userData.role !== undefined ? userData.role : userData.Role !== undefined ? userData.Role : 4),
-      IsActive: userData.isActive !== undefined ? userData.isActive : userData.IsActive !== undefined ? userData.IsActive : true,
-      Address: userData.address || userData.Address || '',
-      DateOfBirth: userData.dateOfBirth || userData.DateOfBirth || '',
-      Nationality: userData.nationality || userData.Nationality || ''
+      PhoneNumber: userData.phoneNumber || userData.PhoneNumber || null,
+      Role: userData.role || userData.Role || 'Customer',
+      Avatar: userData.avatar || userData.Avatar || null
     };
 
     // Only include password if provided
     if (userData.password || userData.Password) {
       apiData.Password = userData.password || userData.Password;
-    }
-
-    // Format date if provided
-    if (apiData.DateOfBirth && apiData.DateOfBirth !== '') {
-      try {
-        apiData.DateOfBirth = new Date(apiData.DateOfBirth).toISOString();
-      } catch (e) {
-        console.warn('Invalid date format:', apiData.DateOfBirth);
-        apiData.DateOfBirth = '';
-      }
     }
 
     console.log('Updating user', id, 'with data:', apiData);
