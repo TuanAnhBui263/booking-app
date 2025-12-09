@@ -18,11 +18,11 @@ const AdminSidebar = ({
   setActivePage,
   isSidebarOpen,
   setIsSidebarOpen,
-  isScrolled = false, // giữ như props
+  isScrolled = false, 
 }) => {
   const { user, isAuthenticated, logout } = useAuth();
-  const [showUserMenu, setShowUserMenu] = useState(false); // import useState để dùng
-  const navigate = useNavigate(); // import useNavigate để dùng
+  const [showUserMenu, setShowUserMenu] = useState(false); 
+  const navigate = useNavigate(); 
 
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Bảng điều khiển' },
