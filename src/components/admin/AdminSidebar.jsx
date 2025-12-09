@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Thêm import này
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   MapPin,
@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   ShoppingBag,
   Users as UsersIcon,
-  Settings,
   MessageSquare
 } from 'lucide-react';
 
@@ -30,7 +29,6 @@ const AdminSidebar = ({
     { id: 'bookings', icon: ShoppingBag, label: 'Đơn đặt tour' },
     { id: 'customers', icon: UsersIcon, label: 'Khách hàng' },
     { id: 'reviews', icon: MessageSquare, label: 'Đánh giá' },
-    { id: 'settings', icon: Settings, label: 'Cài đặt' }
   ];
 
   const handleLogout = async () => {

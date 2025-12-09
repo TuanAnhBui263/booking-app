@@ -676,13 +676,11 @@ const CustomersManagement = () => {
                       <th className="text-left py-3 px-4 text-gray-600 font-semibold">Contact</th>
                       <th className="text-left py-3 px-4 text-gray-600 font-semibold">Role</th>
                       <th className="text-left py-3 px-4 text-gray-600 font-semibold">Status</th>
-                      <th className="text-left py-3 px-4 text-gray-600 font-semibold">Joined</th>
                       <th className="text-left py-3 px-4 text-gray-600 font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {users.map((user) => {
-                      // Convert Roles array to role number
                       const roleValue = user.Roles 
                         ? getRoleFromRolesArray(user.Roles)
                         : (user.Role !== undefined ? user.Role : user.role);
@@ -697,20 +695,11 @@ const CustomersManagement = () => {
                         createdAt: user.CreatedAt || user.createdAt
                       };
 
-                      // DEBUG: Log để kiểm tra role value
                       console.log(`User: ${u.fullName}, Roles array: ${user.Roles}, Role value: ${u.role}, Role label: ${getRoleLabel(u.role)}`);
 
                       const initials = u.fullName
                         ? u.fullName.split(' ').map(n => n[0]).join('').toUpperCase()
                         : '?';
-
-                      const joinDate = u.createdAt
-                        ? new Date(u.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })
-                        : 'N/A';
 
                       return (
                         <tr key={u.id} className="border-b hover:bg-gray-50 transition-colors">
@@ -755,7 +744,6 @@ const CustomersManagement = () => {
                               {u.isActive ? 'Active' : 'Inactive'}
                             </button>
                           </td>
-                          <td className="py-3 px-4 text-sm text-gray-600">{joinDate}</td>
                           <td className="py-3 px-4">
                             <div className="flex gap-2">
                               <button

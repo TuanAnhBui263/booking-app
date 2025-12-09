@@ -4,7 +4,6 @@ import ToursManagement from '../admin/ToursManagement';
 import BookingsManagement from '../admin/BookingsManagement';
 import AdminSidebar from '../admin/AdminSidebar';
 import CustomersManagement from '../admin/CustomersManagement';
-import SettingsPage from '../admin/SettingsPage';
 import ReviewsManagement from '../admin/ReviewsManagement';
 import { Menu, Search, Bell, User } from 'lucide-react';
 const AdminPage = () => {
@@ -23,8 +22,6 @@ const AdminPage = () => {
         return <CustomersManagement />;
       case 'reviews':
         return <ReviewsManagement />;
-      case 'settings':
-        return <SettingsPage />;
       default:
         return <AdminDashboard />;
     }
