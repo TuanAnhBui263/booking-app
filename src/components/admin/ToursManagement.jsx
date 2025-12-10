@@ -1612,6 +1612,7 @@ export default function ToursManagement() {
                       />
                     </div>
                   </div>
+                  
 
                   {/* SEO */}
                   <div className="border-t pt-4 space-y-4">

@@ -11,7 +11,6 @@ export const tourService = {
     const queryParams = new URLSearchParams();
     Object.keys(searchParams).forEach(key => {
       if (searchParams[key] !== null && searchParams[key] !== undefined && searchParams[key] !== '') {
-        // Handle array parameters (like TagIds)
         if (Array.isArray(searchParams[key])) {
           searchParams[key].forEach(value => {
             queryParams.append(key, value);
@@ -37,7 +36,6 @@ export const tourService = {
   // Get featured tours
   getFeaturedTours: async (take = 10) => {
     const response = await apiRequest(`/Tours/featured?take=${take}`);
-    // Handle both array and object response
     if (Array.isArray(response)) {
       return response;
     }
@@ -47,7 +45,6 @@ export const tourService = {
   // Get popular tours
   getPopularTours: async (take = 10) => {
     const response = await apiRequest(`/Tours/popular?take=${take}`);
-    // Handle both array and object response
     if (Array.isArray(response)) {
       return response;
     }
@@ -57,7 +54,6 @@ export const tourService = {
   // Get related tours
   getRelatedTours: async (id, take = 5) => {
     const response = await apiRequest(`/Tours/${id}/related?take=${take}`);
-    // Handle both array and object response
     if (Array.isArray(response)) {
       return response;
     }
@@ -69,7 +65,6 @@ export const tourService = {
     const response = await apiRequest(
       `/Tours/destination/${destinationId}?pageNumber=${pageNumber}&pageSize=${pageSize}`
     );
-    // Handle both array and object response
     if (Array.isArray(response)) {
       return response;
     }
@@ -81,7 +76,6 @@ export const tourService = {
     const response = await apiRequest(
       `/Tours/category/${category}?pageNumber=${pageNumber}&pageSize=${pageSize}`
     );
-    // Handle both array and object response
     if (Array.isArray(response)) {
       return response;
     }
@@ -187,7 +181,7 @@ export const tourService = {
     });
   },
 
-    getAvailableGuides: async (tourId, tourDate) => {
+  getAvailableGuides: async (tourId, tourDate) => {
     const queryParams = new URLSearchParams({
       tourDate: tourDate instanceof Date ? tourDate.toISOString() : tourDate
     });
@@ -213,5 +207,70 @@ export const tourService = {
       tourDate: tourDate instanceof Date ? tourDate.toISOString() : tourDate
     });
     return await apiRequest(`/Tours/${tourId}/default-guide?${queryParams.toString()}`);
+  },
+
+  // ============ TOUR DEPARTURES ============
+  
+  // Get tour departures
+  getDepartures: async (tourId, fromDate = null, availableOnly = true) => {
+    const queryParams = new URLSearchParams();
+    if (fromDate) {
+      queryParams.append('fromDate', fromDate instanceof Date ? fromDate.toISOString() : fromDate);
+    }
+    queryParams.append('availableOnly', availableOnly.toString());
+    
+    return await apiRequest(`/Tours/${tourId}/departures?${queryParams.toString()}`);
+  },
+
+  // Get departure by ID
+  getDepartureById: async (tourId, departureId) => {
+    return await apiRequest(`/Tours/${tourId}/departures/${departureId}`);
+  },
+
+  // Check departure availability
+  checkDepartureAvailability: async (tourId, departureId, numberOfGuests = 1) => {
+    const queryParams = new URLSearchParams({
+      numberOfGuests: numberOfGuests.toString()
+    });
+    return await apiRequest(`/Tours/${tourId}/departures/${departureId}/availability?${queryParams.toString()}`);
+  },
+
+  // Create single departure
+  createDeparture: async (tourId, departureData) => {
+    return await apiRequest(`/Tours/${tourId}/departures`, {
+      method: 'POST',
+      body: JSON.stringify(departureData),
+    });
+  },
+
+  // Bulk create departures
+  bulkCreateDepartures: async (tourId, departuresData) => {
+    return await apiRequest(`/Tours/${tourId}/departures/bulk`, {
+      method: 'POST',
+      body: JSON.stringify(departuresData),
+    });
+  },
+
+  // Generate departures by pattern
+  generateDepartures: async (tourId, generateRequest) => {
+    return await apiRequest(`/Tours/${tourId}/departures/generate`, {
+      method: 'POST',
+      body: JSON.stringify(generateRequest),
+    });
+  },
+
+  // Update departure
+  updateDeparture: async (tourId, departureId, departureData) => {
+    return await apiRequest(`/Tours/${tourId}/departures/${departureId}`, {
+      method: 'PUT',
+      body: JSON.stringify(departureData),
+    });
+  },
+
+  // Delete departure
+  deleteDeparture: async (tourId, departureId) => {
+    return await apiRequest(`/Tours/${tourId}/departures/${departureId}`, {
+      method: 'DELETE',
+    });
   },
 };
