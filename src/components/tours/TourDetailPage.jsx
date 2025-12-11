@@ -32,18 +32,17 @@ const TourDetailPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  // Get tour ID from query params or location state
   const tourId = searchParams.get('id') || location.state?.tourData?.id;
 
   const [tour, setTour] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDeparture, setSelectedDeparture] = useState(null);
   const [numberOfGuests, setNumberOfGuests] = useState(2);
   const [activeTab, setActiveTab] = useState('overview');
   const [liked, setLiked] = useState(false);
+  const [availableDepartures, setAvailableDepartures] = useState([]);
 
-  // Fetch tour details
   useEffect(() => {
     if (tourId) {
       fetchTourDetails();
@@ -53,7 +52,12 @@ const TourDetailPage = () => {
     }
   }, [tourId]);
 
-  // Check if tour is in favorites
+  useEffect(() => {
+    if (tour) {
+      loadDepartures();
+    }
+  }, [tour]);
+
   useEffect(() => {
     if (isAuthenticated && tourId) {
       checkFavorite();
@@ -64,24 +68,48 @@ const TourDetailPage = () => {
     setLoading(true);
     setError(null);
     try {
-      console.log('Fetching tour details for ID:', tourId);
       const response = await tourService.getTourById(tourId);
-      console.log('Tour details response:', response);
-
-      // Handle different response structures
       let tourData = response;
       if (response?.data) {
         tourData = response.data;
       } else if (response?.Data) {
         tourData = response.Data;
       }
-
       setTour(tourData);
     } catch (err) {
       console.error('Error fetching tour details:', err);
       setError('Không thể tải thông tin tour. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadDepartures = async () => {
+    try {
+      const tourDepartures = tour.departures || tour.Departures || [];
+      
+      if (tourDepartures.length > 0) {
+        const now = new Date();
+        const available = tourDepartures.filter(dep => {
+          const depDate = new Date(dep.departureDate || dep.DepartureDate);
+          const availableSlots = dep.availableSlots ?? dep.AvailableSlots ?? 0;
+          return depDate > now && availableSlots > 0;
+        });
+        setAvailableDepartures(available);
+        if (available.length > 0) {
+          setSelectedDeparture(available[0]);
+        }
+      } else {
+        const response = await tourService.getDepartures(tourId, new Date().toISOString(), true);
+        const departures = Array.isArray(response) ? response : (response?.data || response?.Data || []);
+        setAvailableDepartures(departures);
+        if (departures.length > 0) {
+          setSelectedDeparture(departures[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading departures:', error);
+      setAvailableDepartures([]);
     }
   };
 
@@ -101,7 +129,6 @@ const TourDetailPage = () => {
       navigate('/login');
       return;
     }
-
     try {
       const response = await favoriteService.toggleFavorite(tourId);
       if (response?.isFavorite !== undefined) {
@@ -113,20 +140,27 @@ const TourDetailPage = () => {
   };
 
   const handleBookNow = () => {
-    if (!selectedDate) {
+    if (!selectedDeparture) {
       alert('Vui lòng chọn ngày khởi hành');
+      return;
+    }
+
+    const availableSlots = selectedDeparture.availableSlots ?? selectedDeparture.AvailableSlots ?? 0;
+    if (numberOfGuests > availableSlots) {
+      alert(`Chỉ còn ${availableSlots} chỗ trống cho chuyến này`);
       return;
     }
 
     if (!tour) return;
 
-    // Normalize tour data
     const tourIdValue = tour.id || tour.Id;
     const tourName = tour.name || tour.Name || tour.title || '';
     const tourImage = tour.primaryImageUrl || tour.PrimaryImageUrl || tour.imageUrl || tour.image || '';
-    const tourPrice = tour.price || tour.Price || 0;
+    const tourPrice = selectedDeparture.price || selectedDeparture.Price || tour.price || tour.Price || 0;
     const tourLocation = tour.location || tour.Location || tour.destinationName || tour.DestinationName || '';
     const tourDuration = tour.duration || tour.Duration || '';
+    const departureDate = selectedDeparture.departureDate || selectedDeparture.DepartureDate;
+    const departureId = selectedDeparture.id || selectedDeparture.Id;
 
     navigate('/checkout', {
       state: {
@@ -138,14 +172,15 @@ const TourDetailPage = () => {
           price: tourPrice,
           location: tourLocation,
           duration: tourDuration,
-          date: selectedDate,
-          guests: numberOfGuests
+          date: departureDate,
+          guests: numberOfGuests,
+          departureId: departureId,
+          availableSlots: availableSlots
         }
       }
     });
   };
 
-  // Normalize tour data helper
   const getTourField = (field, defaultValue = '') => {
     if (!tour) return defaultValue;
     const pascalField = field.charAt(0).toUpperCase() + field.slice(1);
@@ -179,7 +214,6 @@ const TourDetailPage = () => {
     );
   }
 
-  // Normalize tour data
   const firstImage = (() => {
     const images = tour.images || tour.Images || [];
     if (images.length > 0) {
@@ -203,21 +237,16 @@ const TourDetailPage = () => {
   const tourDescription = getTourField('description', '');
   const tourMaxGuests = getTourField('maxGuests', 0);
 
-  // Get images array
   const tourImages = (tour.images || tour.Images || tour.gallery || tour.Gallery || [])
-  .map(img => typeof img === 'string' ? img : (img.imageUrl || img.ImageUrl || img.url || img.Url || ''))
-  .filter(Boolean);
+    .map(img => typeof img === 'string' ? img : (img.imageUrl || img.ImageUrl || img.url || img.Url || ''))
+    .filter(Boolean);
 
-  // Get itinerary
   const tourItinerary = tour.itineraries || tour.Itineraries || tour.itinerary || [];
-
-  // Get includes/excludes
   const tourIncludes = tour.includes || tour.Includes || [];
   const tourExcludes = tour.excludes || tour.Excludes || [];
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Back Button */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <button
@@ -230,21 +259,16 @@ const TourDetailPage = () => {
         </div>
       </div>
 
-      {/* Hero Section */}
       <div className="relative h-[500px]">
-        <img
-          src={tourImage}
-          alt={tourName}
-          className="w-full h-full object-cover"
-        />
+        <img src={tourImage} alt={tourName} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
 
-        {/* Actions */}
         <div className="absolute top-6 right-6 flex gap-3">
           <button
             onClick={toggleFavorite}
-            className={`p-3 rounded-full backdrop-blur-md transition-all ${liked ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-700 hover:bg-white'
-              }`}
+            className={`p-3 rounded-full backdrop-blur-md transition-all ${
+              liked ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-700 hover:bg-white'
+            }`}
           >
             <Heart size={20} className={liked ? 'fill-current' : ''} />
           </button>
@@ -253,7 +277,6 @@ const TourDetailPage = () => {
           </button>
         </div>
 
-        {/* Title */}
         <div className="absolute bottom-0 left-0 right-0 p-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center gap-3 mb-3">
@@ -263,10 +286,11 @@ const TourDetailPage = () => {
                 </span>
               )}
               {tourDifficulty && (
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${tourDifficulty === 'Easy' || tourDifficulty === 'Dễ' ? 'bg-green-500 text-white' :
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                  tourDifficulty === 'Easy' || tourDifficulty === 'Dễ' ? 'bg-green-500 text-white' :
                   tourDifficulty === 'Medium' || tourDifficulty === 'Trung bình' ? 'bg-yellow-500 text-white' :
-                    'bg-red-500 text-white'
-                  }`}>
+                  'bg-red-500 text-white'
+                }`}>
                   {tourDifficulty}
                 </span>
               )}
@@ -279,12 +303,9 @@ const TourDetailPage = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column - Main Content */}
           <div className="lg:col-span-2">
-            {/* Quick Info */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-gradient-to-br from-cyan-50 to-blue-50 p-4 rounded-xl">
                 <Clock className="text-cyan-600 mb-2" size={24} />
@@ -308,17 +329,15 @@ const TourDetailPage = () => {
               </div>
             </div>
 
-            {/* Tabs */}
             <div className="border-b border-gray-200 mb-8">
               <div className="flex gap-8">
                 {['overview', 'itinerary', 'included'].map(tab => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`pb-4 font-semibold transition-colors relative ${activeTab === tab
-                      ? 'text-cyan-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                      }`}
+                    className={`pb-4 font-semibold transition-colors relative ${
+                      activeTab === tab ? 'text-cyan-600' : 'text-gray-500 hover:text-gray-700'
+                    }`}
                   >
                     {tab === 'overview' && 'Tổng quan'}
                     {tab === 'itinerary' && 'Lịch trình'}
@@ -331,24 +350,18 @@ const TourDetailPage = () => {
               </div>
             </div>
 
-            {/* Tab Content */}
             {activeTab === 'overview' && (
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Giới thiệu</h3>
                 <p className="text-gray-700 leading-relaxed mb-6">{tourDescription || 'Chưa có mô tả'}</p>
 
-                {/* Gallery */}
                 {tourImages.length > 0 && (
                   <>
                     <h3 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Thư viện ảnh</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {tourImages.slice(0, 8).map((img, idx) => {
-                        const imageUrl = typeof img === 'string'
-                          ? img
-                          : (img.imageUrl || img.ImageUrl || img.url || img.Url || '');
-
+                        const imageUrl = typeof img === 'string' ? img : (img.imageUrl || img.ImageUrl || img.url || img.Url || '');
                         if (!imageUrl) return null;
-
                         return (
                           <div key={idx} className="aspect-square rounded-xl overflow-hidden">
                             <img
@@ -365,7 +378,7 @@ const TourDetailPage = () => {
               </div>
             )}
 
-{activeTab === 'itinerary' && (
+            {activeTab === 'itinerary' && (
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Lịch trình chi tiết</h3>
                 {tourItinerary.length > 0 ? (
@@ -389,7 +402,6 @@ const TourDetailPage = () => {
                             <h4 className="text-xl font-bold text-gray-900 mb-3">{dayTitle}</h4>
                             <p className="text-gray-700 leading-relaxed mb-4">{dayDescription}</p>
                             
-                            {/* Additional Details Grid */}
                             <div className="grid md:grid-cols-3 gap-4">
                               {activities && (
                                 <div className="bg-blue-50 rounded-lg p-3">
@@ -400,7 +412,6 @@ const TourDetailPage = () => {
                                   <p className="text-sm text-gray-700">{activities}</p>
                                 </div>
                               )}
-                              
                               {meals && (
                                 <div className="bg-orange-50 rounded-lg p-3">
                                   <div className="flex items-center gap-2 mb-2">
@@ -410,7 +421,6 @@ const TourDetailPage = () => {
                                   <p className="text-sm text-gray-700">{meals}</p>
                                 </div>
                               )}
-                              
                               {accommodation && (
                                 <div className="bg-purple-50 rounded-lg p-3">
                                   <div className="flex items-center gap-2 mb-2">
@@ -472,10 +482,8 @@ const TourDetailPage = () => {
             )}
 
             <TourReviewsSection tourId={tourId} />
-
           </div>
 
-          {/* Right Column - Booking Card */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
               <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
@@ -498,85 +506,151 @@ const TourDetailPage = () => {
                   </div>
                 </div>
 
-                {/* Date Selection */}
                 <div className="mb-4">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Ngày khởi hành
                   </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-cyan-500 focus:outline-none"
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
+                  {availableDepartures.length > 0 ? (
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {availableDepartures.map((departure) => {
+                        const depDate = new Date(departure.departureDate || departure.DepartureDate);
+                        const depId = departure.id || departure.Id;
+                        const depPrice = departure.price || departure.Price || tourPrice;
+                        const availableSlots = departure.availableSlots ?? departure.AvailableSlots ?? 0;
+                        const maxGuests = departure.maxGuests || departure.MaxGuests || tourMaxGuests;
+                        const isSelected = selectedDeparture && (selectedDeparture.id || selectedDeparture.Id) === depId;
+                        
+                        return (
+                          <button
+                            key={depId}
+                            onClick={() => setSelectedDeparture(departure)}
+                            className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
+                              isSelected 
+                                ? 'border-cyan-500 bg-cyan-50' 
+                                : 'border-gray-200 hover:border-cyan-300 bg-white'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="text-cyan-600" size={16} />
+                                <span className="font-semibold text-gray-900">
+                                  {depDate.toLocaleDateString('vi-VN', { 
+                                    weekday: 'short',
+                                    year: 'numeric', 
+                                    month: 'short', 
+                                    day: 'numeric' 
+                                  })}
+                                </span>
+                              </div>
+                              {depPrice !== tourPrice && (
+                                <span className="text-sm font-bold text-cyan-600">
+                                  {new Intl.NumberFormat('vi-VN', {
+                                    style: 'currency',
+                                    currency: 'VND'
+                                  }).format(depPrice)}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                              <span className={`${availableSlots <= 5 ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
+                                Còn {availableSlots}/{maxGuests} chỗ
+                              </span>
+                              {availableSlots <= 5 && (
+                                <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-semibold">
+                                  Sắp hết chỗ
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 bg-gray-50 rounded-xl">
+                      <Calendar className="mx-auto text-gray-400 mb-2" size={32} />
+                      <p className="text-gray-600 text-sm">Chưa có lịch khởi hành</p>
+                    </div>
+                  )}
                 </div>
 
-                {/* Guests */}
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Số lượng khách
                   </label>
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => setNumberOfGuests(Math.max(1, numberOfGuests - 1))}
-                      className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-700"
-                    >
-                      -
-                    </button>
-                    <span className="flex-1 text-center font-bold text-lg">{numberOfGuests}</span>
-                    <button
-                      onClick={() => setNumberOfGuests(Math.min(12, numberOfGuests + 1))}
-                      className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-700"
-                    >
-                      +
-                    </button>
-                  </div>
+                  {selectedDeparture ? (
+                    <>
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => setNumberOfGuests(Math.max(1, numberOfGuests - 1))}
+                          className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={numberOfGuests <= 1}
+                        >
+                          -
+                        </button>
+                        <span className="flex-1 text-center font-bold text-lg">{numberOfGuests}</span>
+                        <button
+                          onClick={() => {
+                            const maxSlots = selectedDeparture.availableSlots ?? selectedDeparture.AvailableSlots ?? 0;
+                            setNumberOfGuests(Math.min(maxSlots, numberOfGuests + 1));
+                          }}
+                          className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={numberOfGuests >= (selectedDeparture.availableSlots ?? selectedDeparture.AvailableSlots ?? 0)}
+                        >
+                          +
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        Tối đa {selectedDeparture.availableSlots ?? selectedDeparture.AvailableSlots ?? 0} khách cho chuyến này
+                      </p>
+                    </>
+                  ) : (
+                    <div className="text-center py-4 bg-gray-50 rounded-xl">
+                      <p className="text-gray-500 text-sm">Vui lòng chọn ngày khởi hành</p>
+                    </div>
+                  )}
                 </div>
 
-                {/* Price Breakdown */}
-                <div className="border-t border-gray-200 pt-4 mb-6 space-y-2">
-                  <div className="flex justify-between text-gray-600">
-                    <span>
-                      {new Intl.NumberFormat('vi-VN', {
-                        style: 'currency',
-                        currency: 'VND'
-                      }).format(tourPrice)} x {numberOfGuests} khách
-                    </span>
-                    <span>
-                      {new Intl.NumberFormat('vi-VN', {
-                        style: 'currency',
-                        currency: 'VND'
-                      }).format(tourPrice * numberOfGuests)}
-                    </span>
+                {selectedDeparture && (
+                  <div className="border-t border-gray-200 pt-4 mb-6 space-y-2">
+                    <div className="flex justify-between text-gray-600">
+                      <span>
+                        {new Intl.NumberFormat('vi-VN', {
+                          style: 'currency',
+                          currency: 'VND'
+                        }).format(selectedDeparture.price || selectedDeparture.Price || tourPrice)} x {numberOfGuests} khách
+                      </span>
+                      <span>
+                        {new Intl.NumberFormat('vi-VN', {
+                          style: 'currency',
+                          currency: 'VND'
+                        }).format((selectedDeparture.price || selectedDeparture.Price || tourPrice) * numberOfGuests)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Phí dịch vụ</span>
+                      <span>
+                        {new Intl.NumberFormat('vi-VN', {
+                          style: 'currency',
+                          currency: 'VND'
+                        }).format(Math.round((selectedDeparture.price || selectedDeparture.Price || tourPrice) * numberOfGuests * 0.1))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-bold text-lg text-gray-900 pt-2 border-t border-gray-200">
+                      <span>Tổng cộng</span>
+                      <span className="text-cyan-600">
+                        {new Intl.NumberFormat('vi-VN', {
+                          style: 'currency',
+                          currency: 'VND'
+                        }).format(Math.round((selectedDeparture.price || selectedDeparture.Price || tourPrice) * numberOfGuests * 1.1))}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Phí dịch vụ</span>
-                    <span>
-                      {new Intl.NumberFormat('vi-VN', {
-                        style: 'currency',
-                        currency: 'VND'
-                      }).format(Math.round(tourPrice * numberOfGuests * 0.1))}
-                    </span>
-                  </div>
-                  <div className="flex justify-between font-bold text-lg text-gray-900 pt-2 border-t border-gray-200">
-                    <span>Tổng cộng</span>
-                    <span className="text-cyan-600">
-                      {new Intl.NumberFormat('vi-VN', {
-                        style: 'currency',
-                        currency: 'VND'
-                      }).format(Math.round(tourPrice * numberOfGuests * 1.1))}
-                    </span>
-                  </div>
-                </div>
+                )}
 
-                {/* Book Button */}
                 <button
                   onClick={handleBookNow}
-                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all flex items-center justify-center gap-2 group"
+                  disabled={!selectedDeparture || numberOfGuests === 0}
+                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
                 >
                   <span>Đặt ngay</span>
                   <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
@@ -586,7 +660,6 @@ const TourDetailPage = () => {
                   Bạn sẽ không bị tính phí ngay lập tức
                 </p>
 
-                {/* Contact */}
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <h4 className="font-semibold text-gray-900 mb-3">Cần hỗ trợ?</h4>
                   <div className="space-y-2 text-sm">
@@ -601,7 +674,6 @@ const TourDetailPage = () => {
                   </div>
                 </div>
 
-                {/* Trust Badges */}
                 <div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 text-xs text-gray-600">
                     <Shield className="text-green-500" size={16} />

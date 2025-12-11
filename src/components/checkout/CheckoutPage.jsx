@@ -224,18 +224,39 @@ const CheckoutPage = () => {
             <h2 className="text-2xl font-bold mb-6">Thông tin đặt tour</h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label className="font-semibold text-gray-700 mb-2 block">Ngày khởi hành *</label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
-                  <input
-                    type="date"
-                    value={bookingData.tourDate}
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setBookingData(p => ({ ...p, tourDate: e.target.value }))}
-                    className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-              </div>
+  <label className="font-semibold text-gray-700 mb-2 block">
+    Ngày khởi hành *
+    {bookingData.tourDate && (
+      <span className="text-sm font-normal text-gray-500 ml-2">
+        (Đã chọn từ trang chi tiết)
+      </span>
+    )}
+  </label>
+  <div className="relative">
+    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
+    <input
+      type="date"readOnly
+      value={bookingData.tourDate}
+      min={new Date().toISOString().split('T')[0]}
+      onChange={(e) => {
+        setBookingData(p => ({ ...p, tourDate: e.target.value }));
+      }}
+      className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 bg-white"
+      required
+    />
+  </div>
+  {bookingData.tourDate && (
+    <p className="text-sm text-gray-600 mt-2 flex items-center gap-2">
+      <Calendar size={16} className="text-cyan-600" />
+      {new Date(bookingData.tourDate).toLocaleDateString('vi-VN', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}
+    </p>
+  )}
+</div>
 
               <div>
                 <label className="font-semibold text-gray-700 mb-2 block">Số lượng khách *</label>

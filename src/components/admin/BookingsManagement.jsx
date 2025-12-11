@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { bookingService } from '../../services/bookingService';
-import { 
-  CheckCircle, 
-  Clock, 
-  XCircle, 
+import {
+  CheckCircle,
+  Clock,
+  XCircle,
   WalletCards,
   Search,
   Download,
@@ -51,7 +51,7 @@ const BookingManagement = () => {
       navigate('/login');
       return;
     }
-    
+
     if (user?.role !== 'Admin') {
       navigate('/');
       return;
@@ -66,10 +66,10 @@ const BookingManagement = () => {
     try {
       const status = statusFilter === 'all' ? null : statusFilter;
       const response = await bookingService.getAllBookings(page, pageSize, status);
-      
+
       if (response.success || response.Success) {
         const bookingData = response.data || response.Data || [];
-        
+
         const mappedBookings = bookingData.map(booking => ({
           id: booking.id || booking.Id,
           bookingCode: booking.bookingCode || booking.BookingCode,
@@ -92,9 +92,9 @@ const BookingManagement = () => {
           specialRequests: booking.specialRequests || booking.SpecialRequests,
           userId: booking.userId || booking.UserId
         }));
-        
+
         setBookings(mappedBookings);
-        
+
         if (response.totalPages || response.TotalPages) {
           setTotalPages(response.totalPages || response.TotalPages);
         }
@@ -118,21 +118,21 @@ const BookingManagement = () => {
         const day = String(dateObj.getDate()).padStart(2, '0');
         formattedDate = `${year}-${month}-${day}`;
       }
-      
+
       console.log('Fetching guides for:', { tourId, originalDate: tourDate, formattedDate });
-      
+
       const response = await bookingService.getAvailableGuides(tourId, formattedDate);
-      
+
       if (response.success || response.Success) {
         const guidesData = response.data || response.Data || [];
-        
+
         const mappedGuides = guidesData.map(guide => ({
           guideId: guide.guideId || guide.GuideId,
           fullName: guide.fullName || guide.FullName || 'N/A',
           avatar: guide.avatar || guide.Avatar,
           bio: guide.bio || guide.Bio,
           languages: guide.languages || guide.Languages,
-          isAvailable: guide.isAvailable ?? guide.IsAvailable ?? true, 
+          isAvailable: guide.isAvailable ?? guide.IsAvailable ?? true,
           isDefaultGuide: guide.isDefaultGuide ?? guide.IsDefaultGuide ?? false,
           averageRating: guide.averageRating || guide.AverageRating || 0,
           totalReviews: guide.totalReviews || guide.TotalReviews || 0,
@@ -140,7 +140,7 @@ const BookingManagement = () => {
           conflictingBookingCode: guide.conflictingBookingCode || guide.ConflictingBookingCode,
           conflictingBookingId: guide.conflictingBookingId || guide.ConflictingBookingId
         }));
-        
+
         console.log('Mapped guides:', mappedGuides);
         setAvailableGuides(mappedGuides);
       } else {
@@ -162,7 +162,7 @@ const BookingManagement = () => {
     setAssignReason('');
     setShowGuideModal(true);
     setShowActionMenu(null);
-    
+
     await fetchAvailableGuides(booking.tourId, booking.date);
   };
 
@@ -182,17 +182,17 @@ const BookingManagement = () => {
 
       if (response.success || response.Success) {
         const updatedBooking = response.data || response.Data;
-        
-        setBookings(bookings.map(b => 
-          b.id === selectedBooking.id 
-            ? { 
-                ...b, 
-                guide: updatedBooking.guideName || updatedBooking.GuideName || 'N/A',
-                guideId: selectedGuideId 
-              } 
+
+        setBookings(bookings.map(b =>
+          b.id === selectedBooking.id
+            ? {
+              ...b,
+              guide: updatedBooking.guideName || updatedBooking.GuideName || 'N/A',
+              guideId: selectedGuideId
+            }
             : b
         ));
-        
+
         setShowGuideModal(false);
         setSelectedGuideId(null);
         setAssignReason('');
@@ -216,11 +216,11 @@ const BookingManagement = () => {
     setActionLoading(true);
     try {
       const response = await bookingService.removeGuideFromBooking(bookingId);
-      
+
       if (response.success || response.Success) {
-        setBookings(bookings.map(b => 
-          b.id === bookingId 
-            ? { ...b, guide: 'Chưa gán', guideId: null } 
+        setBookings(bookings.map(b =>
+          b.id === bookingId
+            ? { ...b, guide: 'Chưa gán', guideId: null }
             : b
         ));
         setShowActionMenu(null);
@@ -244,16 +244,38 @@ const BookingManagement = () => {
   };
 
   const filteredBookings = bookings.filter(booking => {
-    const matchesSearch = 
+    const matchesSearch =
       (booking.bookingCode && booking.bookingCode.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (booking.customer && booking.customer.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (booking.tour && booking.tour.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+
     const matchesPayment = paymentFilter === 'all' || booking.payment === paymentFilter;
-    
+
     return matchesSearch && matchesPayment;
   });
+ const getPaymentMethodBadge = (method) => {
+      if (!method || method === 'N/A') {
+        return <span className="text-gray-400 text-xs italic">Chưa chọn</span>;
+      }
 
+      const methodConfig = {
+        'VNPay': { color: 'bg-blue-100 text-blue-700', icon: 'VNP', label: 'VNPay' },
+        'Momo': { color: 'bg-pink-100 text-pink-700', icon: 'MoMo', label: 'MoMo' },
+        'ZaloPay': { color: 'bg-blue-100 text-blue-700', icon: 'Zalo', label: 'ZaloPay' },
+        'BankTransfer': { color: 'bg-gray-100 text-gray-700', icon: 'Bank', label: 'Chuyển khoản' },
+        'Cash': { color: 'bg-green-100 text-green-700', icon: 'Cash', label: 'Tiền mặt' },
+        'CreditCard': { color: 'bg-purple-100 text-purple-700', icon: 'Card', label: 'Thẻ tín dụng' },
+      };
+
+      const config = methodConfig[method] || { color: 'bg-gray-100 text-gray-700', label: method };
+
+      return (
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${config.color}`}>
+          <span className="font-bold">{config.icon}</span>
+          {config.label}
+        </span>
+      );
+    };
   const getStatusBadge = (status) => {
     const statusConfig = {
       'Pending': { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: Clock, label: 'Chờ xử lý' },
@@ -262,10 +284,31 @@ const BookingManagement = () => {
       'Cancelled': { bg: 'bg-red-100', text: 'text-red-700', icon: XCircle, label: 'Đã hủy' },
       'NoShow': { bg: 'bg-gray-200', text: 'text-gray-700', icon: UserX, label: 'Không tham gia' }
     };
-    
+
+
     const config = statusConfig[status] || statusConfig['Pending'];
     const Icon = config.icon;
-    
+
+    return (
+      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${config.bg} ${config.text}`}>
+        <Icon size={14} />
+        {config.label}
+      </span>
+    );
+  };
+  const getPaymentBadge = (payment) => {
+   
+    const paymentConfig = {
+      'Paid': { bg: 'bg-green-100', text: 'text-green-700', icon: CheckCircle, label: 'Đã thanh toán' },
+      'Pending': { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: Clock, label: 'Chưa thanh toán' },
+      'PartiallyPaid': { bg: 'bg-orange-100', text: 'text-orange-700', icon: Clock, label: 'Thanh toán 1 phần' },
+      'Refunded': { bg: 'bg-purple-100', text: 'text-purple-700', icon: WalletCards, label: 'Đã hoàn tiền' },
+      'Failed': { bg: 'bg-red-100', text: 'text-red-700', icon: XCircle, label: 'Thanh toán lỗi' }
+    };
+
+    const config = paymentConfig[payment] || paymentConfig['Pending'];
+    const Icon = config.icon;
+
     return (
       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${config.bg} ${config.text}`}>
         <Icon size={14} />
@@ -319,9 +362,9 @@ const BookingManagement = () => {
       const response = await bookingService.updateBookingStatus(bookingId, {
         status: newStatus
       });
-      
+
       if (response.success || response.Success) {
-        setBookings(bookings.map(b => 
+        setBookings(bookings.map(b =>
           b.id === bookingId ? { ...b, status: newStatus } : b
         ));
         alert('Cập nhật trạng thái thành công!');
@@ -343,7 +386,7 @@ const BookingManagement = () => {
     setActionLoading(true);
     try {
       const response = await bookingService.deleteBooking(bookingId);
-      
+
       if (response.success || response.Success) {
         setBookings(bookings.filter(b => b.id !== bookingId));
         alert('Xóa booking thành công!');
@@ -377,7 +420,7 @@ const BookingManagement = () => {
             <h1 className="text-3xl font-bold text-gray-900">Quản Lý Booking</h1>
             <p className="text-gray-600 mt-1">Theo dõi và quản lý tất cả đặt tour</p>
           </div>
-          <button 
+          <button
             onClick={fetchBookings}
             disabled={loading}
             className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 flex items-center gap-2 font-semibold disabled:opacity-50"
@@ -439,7 +482,7 @@ const BookingManagement = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <select 
+            <select
               className="px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-cyan-500 focus:outline-none"
               value={statusFilter}
               onChange={(e) => {
@@ -453,7 +496,7 @@ const BookingManagement = () => {
               <option value="Completed">Đã hoàn thành</option>
               <option value="Cancelled">Đã hủy</option>
             </select>
-            <select 
+            <select
               className="px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-cyan-500 focus:outline-none"
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value)}
@@ -480,6 +523,8 @@ const BookingManagement = () => {
                   <th className="text-left py-4 px-6 text-gray-700 font-semibold text-sm">Ngày</th>
                   <th className="text-left py-4 px-6 text-gray-700 font-semibold text-sm">Số khách</th>
                   <th className="text-left py-4 px-6 text-gray-700 font-semibold text-sm">Tổng tiền</th>
+                  <th className="text-left py-4 px-6 text-gray-700 font-semibold text-sm">Thanh toán</th>
+                  <th className="text-left py-4 px-6 text-gray-700 font-semibold text-sm">Phương thức</th>
                   <th className="text-left py-4 px-6 text-gray-700 font-semibold text-sm">Trạng thái</th>
                   <th className="text-left py-4 px-6 text-gray-700 font-semibold text-sm">Thao tác</th>
                 </tr>
@@ -546,6 +591,13 @@ const BookingManagement = () => {
                       <td className="py-4 px-6">
                         <span className="font-bold text-gray-900">{formatCurrency(booking.amount)}</span>
                       </td>
+                      <td className="py-4 px-6">
+                        {getPaymentBadge(booking.payment)}
+                      </td>
+                      <td className="py-4 px-6">
+                        {getPaymentMethodBadge(booking.paymentMethod)}
+                      </td>
+
                       <td className="py-4 px-6">{getStatusBadge(booking.status)}</td>
                       <td className="py-4 px-6">
                         <div className="relative">
@@ -556,7 +608,7 @@ const BookingManagement = () => {
                           >
                             <MoreVertical size={18} className="text-gray-600" />
                           </button>
-                          
+
                           {showActionMenu === booking.id && (
                             <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border z-10">
                               <button
@@ -591,11 +643,10 @@ const BookingManagement = () => {
                                       key={option.value}
                                       onClick={() => handleUpdateStatus(booking.id, option.value)}
                                       disabled={actionLoading || booking.status === option.value}
-                                      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-between ${
-                                        booking.status === option.value
+                                      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-between ${booking.status === option.value
                                           ? 'bg-cyan-50 text-cyan-600 border border-cyan-200'
                                           : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                                      } disabled:opacity-60`}
+                                        } disabled:opacity-60`}
                                     >
                                       <span>{option.label}</span>
                                       {booking.status === option.value && <CheckCircle size={16} />}
@@ -625,7 +676,7 @@ const BookingManagement = () => {
 
         {/* Pagination */}
         <div className="flex justify-center items-center gap-2 mt-6">
-          <button 
+          <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1 || loading}
             className="px-5 py-2 border-2 border-gray-200 rounded-lg hover:border-cyan-500 font-medium disabled:opacity-50"
@@ -638,17 +689,16 @@ const BookingManagement = () => {
               <button
                 key={pageNum}
                 onClick={() => setPage(pageNum)}
-                className={`px-5 py-2 rounded-lg font-medium ${
-                  page === pageNum
+                className={`px-5 py-2 rounded-lg font-medium ${page === pageNum
                     ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
                     : 'border-2 border-gray-200 hover:border-cyan-500'
-                }`}
+                  }`}
               >
                 {pageNum}
               </button>
             );
           })}
-          <button 
+          <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page === totalPages || loading}
             className="px-5 py-2 border-2 border-gray-200 rounded-lg hover:border-cyan-500 font-medium disabled:opacity-50"
@@ -698,13 +748,12 @@ const BookingManagement = () => {
                         <div
                           key={guide.guideId}
                           onClick={() => guide.isAvailable && setSelectedGuideId(guide.guideId)}
-                          className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                            selectedGuideId === guide.guideId
+                          className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${selectedGuideId === guide.guideId
                               ? 'border-purple-500 bg-purple-50'
                               : guide.isAvailable
-                              ? 'border-gray-200 hover:border-purple-300'
-                              : 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
-                          }`}
+                                ? 'border-gray-200 hover:border-purple-300'
+                                : 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
+                            }`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
@@ -909,14 +958,14 @@ const BookingManagement = () => {
 
               {/* Actions */}
               <div className="flex gap-3 flex-wrap">
-                <button 
+                <button
                   onClick={() => window.location.href = `mailto:${selectedBooking.email}`}
                   className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
                 >
                   <Mail size={18} />
                   Gửi email
                 </button>
-                <button 
+                <button
                   onClick={() => window.location.href = `tel:${selectedBooking.phone}`}
                   className="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition-all flex items-center justify-center gap-2"
                 >
