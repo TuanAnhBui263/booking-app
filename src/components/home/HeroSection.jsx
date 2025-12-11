@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Calendar, Users, Search, ArrowDownUp } from 'lucide-react';
+import { MapPin, Calendar, Users, Search } from 'lucide-react';
+import { tourService } from '../../services/tourService';
 
 const HeroSection = () => {
   const navigate = useNavigate();
+  const [locations, setLocations] = useState([]);
+  const [loadingLocations, setLoadingLocations] = useState(true);
   const [formData, setFormData] = useState({
     destination: '',
     departDate: '',
@@ -11,10 +14,51 @@ const HeroSection = () => {
     guests: '2'
   });
 
+  useEffect(() => {
+    fetchLocations();
+  }, []);
+
+  const fetchLocations = async () => {
+    setLoadingLocations(true);
+    try {
+      // Lấy tất cả tours để extract locations
+      const response = await tourService.getAllTours(1, 100);
+      let toursData = [];
+      
+      if (Array.isArray(response)) {
+        toursData = response;
+      } else if (response?.data && Array.isArray(response.data)) {
+        toursData = response.data;
+      } else if (response?.Data && Array.isArray(response.Data)) {
+        toursData = response.Data;
+      } else if (response?.items && Array.isArray(response.items)) {
+        toursData = response.items;
+      } else if (response?.Items && Array.isArray(response.Items)) {
+        toursData = response.Items;
+      }
+
+      // Extract unique locations từ tours
+      const uniqueLocations = [...new Set(
+        toursData
+          .map(tour => tour.location || tour.Location || tour.destinationName || tour.DestinationName)
+          .filter(Boolean)
+      )].sort();
+
+      setLocations(uniqueLocations);
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      // Fallback locations nếu API fail
+      setLocations(['Đà Lạt', 'Sa Pa', 'Hạ Long', 'Phú Quốc', 'Đà Nẵng', 'Nha Trang']);
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const params = new URLSearchParams();
-    if (formData.destination) params.append('destination', formData.destination);
+    
+    if (formData.destination) params.append('location', formData.destination);
     if (formData.departDate) params.append('departDate', formData.departDate);
     if (formData.returnDate) params.append('returnDate', formData.returnDate);
     if (formData.guests) params.append('guests', formData.guests);
@@ -62,17 +106,21 @@ const HeroSection = () => {
                       value={formData.destination}
                       onChange={(e) => setFormData({...formData, destination: e.target.value})}
                       className="w-full pl-14 pr-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all appearance-none font-medium text-gray-700 shadow-sm hover:border-cyan-300 cursor-pointer"
+                      disabled={loadingLocations}
                     >
-                      <option value="">Chọn điểm đến</option>
-                      <option value="dalat">Đà Lạt</option>
-                      <option value="sapa">Sa Pa</option>
-                      <option value="halong">Hạ Long</option>
-                      <option value="phuquoc">Phú Quốc</option>
-                      <option value="danang">Đà Nẵng</option>
-                      <option value="nhatrang">Nha Trang</option>
+                      <option value="">
+                        {loadingLocations ? 'Đang tải...' : 'Chọn điểm đến'}
+                      </option>
+                      {locations.map((location, index) => (
+                        <option key={index} value={location}>
+                          {location}
+                        </option>
+                      ))}
                     </select>
                   </div>
-                  <div className="text-xs text-gray-500 mt-2 pl-14">Tour trong nước</div>
+                  <div className="text-xs text-gray-500 mt-2 pl-14">
+                    {locations.length > 0 ? `${locations.length} điểm đến` : 'Tour trong nước'}
+                  </div>
                 </div>
 
                 {/* Journey Date */}
@@ -86,6 +134,7 @@ const HeroSection = () => {
                       type="date"
                       value={formData.departDate}
                       onChange={(e) => setFormData({...formData, departDate: e.target.value})}
+                      min={new Date().toISOString().split('T')[0]}
                       className="w-full pl-14 pr-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all font-medium text-gray-700 shadow-sm hover:border-cyan-300 cursor-pointer"
                     />
                   </div>
@@ -103,6 +152,7 @@ const HeroSection = () => {
                       type="date"
                       value={formData.returnDate}
                       onChange={(e) => setFormData({...formData, returnDate: e.target.value})}
+                      min={formData.departDate || new Date().toISOString().split('T')[0]}
                       className="w-full pl-14 pr-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all font-medium text-gray-700 shadow-sm hover:border-cyan-300 cursor-pointer"
                     />
                   </div>
@@ -126,7 +176,7 @@ const HeroSection = () => {
                       ))}
                     </select>
                   </div>
-                    <div className="text-xs text-gray-500 mt-2 pl-14">Người lớn</div>
+                  <div className="text-xs text-gray-500 mt-2 pl-14">Người lớn</div>
                 </div>
               </div>
 
@@ -151,7 +201,7 @@ const HeroSection = () => {
             <div className="text-white/80">Tour du lịch</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold text-white mb-2">50+</div>
+            <div className="text-4xl font-bold text-white mb-2">{locations.length}+</div>
             <div className="text-white/80">Điểm đến</div>
           </div>
           <div className="text-center">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { tourService } from '../../services/tourService';
 import { favoriteService } from '../../services/favoriteService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,7 +15,6 @@ import {
   WalletCards,
   Mountain,
   TrendingUp,
-  Award,
   X,
   Filter,
   Heart,
@@ -24,8 +23,23 @@ import {
 
 const TourListPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
+  
+  // Lấy params từ URL
+  const searchParams = new URLSearchParams(location.search);
+  const urlLocation = searchParams.get('location') || '';
+  const urlDepartDate = searchParams.get('departDate') || '';
+  const urlReturnDate = searchParams.get('returnDate') || '';
+  const urlGuests = searchParams.get('guests') || '';
+
   const [searchQuery, setSearchQuery] = useState('');
+  const [locationFilter, setLocationFilter] = useState(urlLocation);
+  const [dateFilter, setDateFilter] = useState({
+    departDate: urlDepartDate,
+    returnDate: urlReturnDate
+  });
+  const [guestsFilter, setGuestsFilter] = useState(urlGuests);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [likedTours, setLikedTours] = useState([]);
   const [tours, setTours] = useState([]);
@@ -43,7 +57,7 @@ const TourListPage = () => {
 
   useEffect(() => {
     fetchTours();
-  }, [page, searchQuery, filters]);
+  }, [page, searchQuery, locationFilter, dateFilter, guestsFilter, filters]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -51,10 +65,25 @@ const TourListPage = () => {
     }
   }, [isAuthenticated]);
 
+  // Update filters when URL changes
+  useEffect(() => {
+    const newLocation = searchParams.get('location') || '';
+    const newDepartDate = searchParams.get('departDate') || '';
+    const newReturnDate = searchParams.get('returnDate') || '';
+    const newGuests = searchParams.get('guests') || '';
+    
+    setLocationFilter(newLocation);
+    setDateFilter({
+      departDate: newDepartDate,
+      returnDate: newReturnDate
+    });
+    setGuestsFilter(newGuests);
+  }, [location.search]);
+
   const fetchTours = async () => {
     setLoading(true);
     try {
-      const searchParams = {
+      const searchParamsObj = {
         keyword: searchQuery || null,
         pageNumber: page,
         pageSize: pageSize,
@@ -65,8 +94,8 @@ const TourListPage = () => {
         sortDesc: true
       };
       
-      console.log('Fetching tours with params:', searchParams);
-      const response = await tourService.searchTours(searchParams);
+      console.log('Fetching tours with params:', searchParamsObj);
+      const response = await tourService.searchTours(searchParamsObj);
       console.log('Search tours response:', response);
       
       let toursData = [];
@@ -139,6 +168,33 @@ const TourListPage = () => {
   const applyClientFilters = (toursData) => {
     let filtered = [...toursData];
 
+    // Location filter từ Hero search
+    if (locationFilter) {
+      filtered = filtered.filter(tour => {
+        const tourLocation = (tour.location || tour.Location || tour.destinationName || tour.DestinationName || '').toLowerCase();
+        return tourLocation === locationFilter.toLowerCase();
+      });
+    }
+
+    // Date filter - lọc tours có ngày khởi hành phù hợp
+    if (dateFilter.departDate) {
+      filtered = filtered.filter(tour => {
+        // Có thể kiểm tra với tour departures hoặc available dates
+        // Tạm thời skip nếu không có thông tin ngày
+        return true;
+      });
+    }
+
+    // Guests filter - lọc tours có đủ chỗ cho số khách
+    if (guestsFilter) {
+      const numGuests = parseInt(guestsFilter);
+      filtered = filtered.filter(tour => {
+        const maxGuests = tour.maxGuests || tour.MaxGuests || 0;
+        return maxGuests >= numGuests;
+      });
+    }
+
+    // Difficulty filter
     if (filters.difficulty.length > 0) {
       filtered = filtered.filter(tour => {
         const tourDifficulty = (tour.difficulty || tour.Difficulty || '').toLowerCase();
@@ -152,6 +208,7 @@ const TourListPage = () => {
       });
     }
 
+    // Duration filter
     if (filters.duration.length > 0) {
       filtered = filtered.filter(tour => {
         const durationDays = tour.durationDays || tour.DurationDays || 0;
@@ -162,6 +219,14 @@ const TourListPage = () => {
           if (d === '10+ ngày') return durationDays >= 10;
           return false;
         });
+      });
+    }
+
+    // Rating filter
+    if (filters.rating) {
+      filtered = filtered.filter(tour => {
+        const rating = tour.averageRating || tour.AverageRating || 0;
+        return rating >= filters.rating;
       });
     }
 
@@ -188,7 +253,6 @@ const TourListPage = () => {
       return;
     }
 
-    // Optimistic UI update
     const isCurrentlyLiked = likedTours.includes(tourId);
     if (isCurrentlyLiked) {
       setLikedTours(prev => prev.filter(id => id !== tourId));
@@ -200,7 +264,6 @@ const TourListPage = () => {
       const response = await favoriteService.toggleFavorite(tourId);
       console.log('Toggle favorite response:', response);
       
-      // Sync with server response
       if (response.isFavorite || response.IsFavorite) {
         setLikedTours(prev => prev.includes(tourId) ? prev : [...prev, tourId]);
       } else {
@@ -208,7 +271,6 @@ const TourListPage = () => {
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      // Revert optimistic update on error
       if (isCurrentlyLiked) {
         setLikedTours(prev => [...prev, tourId]);
       } else {
@@ -273,7 +335,35 @@ const TourListPage = () => {
       duration: []
     });
     setSearchQuery('');
+    setLocationFilter('');
+    setDateFilter({ departDate: '', returnDate: '' });
+    setGuestsFilter('');
     setPage(1);
+    
+    // Clear URL params
+    navigate('/tours');
+  };
+
+  const removeLocationFilter = () => {
+    setLocationFilter('');
+    const params = new URLSearchParams(location.search);
+    params.delete('location');
+    navigate(`/tours?${params.toString()}`);
+  };
+
+  const removeDateFilter = () => {
+    setDateFilter({ departDate: '', returnDate: '' });
+    const params = new URLSearchParams(location.search);
+    params.delete('departDate');
+    params.delete('returnDate');
+    navigate(`/tours?${params.toString()}`);
+  };
+
+  const removeGuestsFilter = () => {
+    setGuestsFilter('');
+    const params = new URLSearchParams(location.search);
+    params.delete('guests');
+    navigate(`/tours?${params.toString()}`);
   };
 
   const formatCurrency = (value) => {
@@ -283,6 +373,12 @@ const TourListPage = () => {
       return `${(value / 1000).toFixed(0)}K`;
     }
     return value.toString();
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const FilterSection = ({ mobile = false }) => (
@@ -299,6 +395,63 @@ const TourListPage = () => {
           Xóa tất cả
         </button>
       </div>
+
+      {/* Active Filters from Hero Search */}
+      {(locationFilter || dateFilter.departDate || guestsFilter) && (
+        <div className="mb-6 pb-6 border-b border-gray-100">
+          <h3 className="font-semibold mb-3 text-gray-900 text-sm">Tìm kiếm của bạn</h3>
+          <div className="space-y-2">
+            {locationFilter && (
+              <div className="flex items-center justify-between bg-cyan-50 p-3 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <MapPin size={16} className="text-cyan-600" />
+                  <span className="text-sm font-medium text-cyan-900">{locationFilter}</span>
+                </div>
+                <button 
+                  onClick={removeLocationFilter}
+                  className="text-cyan-600 hover:text-cyan-700"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+            
+            {(dateFilter.departDate || dateFilter.returnDate) && (
+              <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Calendar size={16} className="text-blue-600" />
+                  <span className="text-sm font-medium text-blue-900">
+                    {dateFilter.departDate && formatDate(dateFilter.departDate)}
+                    {dateFilter.departDate && dateFilter.returnDate && ' - '}
+                    {dateFilter.returnDate && formatDate(dateFilter.returnDate)}
+                  </span>
+                </div>
+                <button 
+                  onClick={removeDateFilter}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+            
+            {guestsFilter && (
+              <div className="flex items-center justify-between bg-purple-50 p-3 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Users size={16} className="text-purple-600" />
+                  <span className="text-sm font-medium text-purple-900">{guestsFilter} người</span>
+                </div>
+                <button 
+                  onClick={removeGuestsFilter}
+                  className="text-purple-600 hover:text-purple-700"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Price Range Slider */}
       <div className="mb-6 pb-6 border-b border-gray-100">
@@ -435,11 +588,15 @@ const TourListPage = () => {
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-5 py-2.5 rounded-full mb-6 border border-white/30">
               <MapPin size={18} />
-              <span className="font-semibold text-sm uppercase tracking-wide">TOURS</span>
+              <span className="font-semibold text-sm uppercase tracking-wide">
+                {locationFilter || 'TẤT CẢ TOURS'}
+              </span>
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-2xl">Khám Phá Tất Cả Tour</h1>
+            <h1 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-2xl">
+              {locationFilter ? `Tour tại ${locationFilter}` : 'Khám Phá Tất Cả Tour'}
+            </h1>
             <p className="text-xl text-white/90 max-w-2xl mx-auto drop-shadow-lg">
-              Trải nghiệm những cuộc phiêu lưu leo núi tuyệt vời khắp dãy Alps
+              Trải nghiệm những cuộc phiêu lưu tuyệt vời khắp Việt Nam
             </p>
           </div>
 
