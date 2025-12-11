@@ -85,10 +85,10 @@ export default function TourDetail() {
         })),
         itineraries: response.Itineraries || response.itineraries || [],
         includes: (response.Includes || response.includes || []).map(i => 
-          i.Description || i.description || i
+          typeof i === 'string' ? i : (i.Item || i.item || '') 
         ),
         excludes: (response.Excludes || response.excludes || []).map(e => 
-          e.Description || e.description || e
+          typeof e === 'string' ? e : (e.Item || e.item || '')  
         ),
         guides: (response.Guides || response.guides || []).map(g => ({
           guideId: g.GuideId || g.guideId || g.Id || g.id,
@@ -311,14 +311,14 @@ export default function TourDetail() {
 
             {/* Description */}
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Description</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Mô tả</h2>
               <p className="text-gray-700 whitespace-pre-wrap">{tour.description}</p>
             </div>
 
             {/* What's Included */}
             {tour.includes && tour.includes.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">What's Included</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Bao Gồm</h2>
                 <ul className="space-y-2">
                   {tour.includes.map((item, idx) => (
                     <li key={idx} className="flex items-start gap-3">
@@ -333,7 +333,7 @@ export default function TourDetail() {
             {/* What's Not Included */}
             {tour.excludes && tour.excludes.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">What's Not Included</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Không bao gồm</h2>
                 <ul className="space-y-2">
                   {tour.excludes.map((item, idx) => (
                     <li key={idx} className="flex items-start gap-3">
@@ -374,6 +374,70 @@ export default function TourDetail() {
                     <p className="text-gray-700 whitespace-pre-wrap">{tour.specialRequirements}</p>
                   </div>
                 )}
+              </div>
+            )}
+
+           {/* Itinerary */}
+           {tour.itineraries && tour.itineraries.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Lịch trình chi tiết</h2>
+                <div className="space-y-6">
+                  {tour.itineraries.map((day, idx) => {
+                    const dayNumber = day.dayNumber || day.DayNumber || idx + 1;
+                    const title = day.title || day.Title || `Day ${dayNumber}`;
+                    const description = day.description || day.Description || '';
+                    const activities = day.activities || day.Activities || '';
+                    const meals = day.meals || day.Meals || '';
+                    const accommodation = day.accommodation || day.Accommodation || '';
+
+                    return (
+                      <div key={day.id || idx} className="flex gap-4">
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+                            {dayNumber}
+                          </div>
+                        </div>
+                        <div className="flex-1 pb-6 border-b border-gray-200 last:border-0">
+                          <h4 className="text-lg font-bold text-gray-900 mb-2">{title}</h4>
+                          <p className="text-gray-700 mb-4">{description}</p>
+                          
+                          {/* Additional Details */}
+                          <div className="space-y-3">
+                            {activities && (
+                              <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                                <Calendar className="text-blue-600 flex-shrink-0 mt-0.5" size={18} />
+                                <div>
+                                  <p className="font-semibold text-sm text-blue-900 mb-1">Activities</p>
+                                  <p className="text-sm text-gray-700">{activities}</p>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {meals && (
+                              <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg">
+                                <CheckCircle className="text-orange-600 flex-shrink-0 mt-0.5" size={18} />
+                                <div>
+                                  <p className="font-semibold text-sm text-orange-900 mb-1">Meals Included</p>
+                                  <p className="text-sm text-gray-700">{meals}</p>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {accommodation && (
+                              <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
+                                <MapPin className="text-purple-600 flex-shrink-0 mt-0.5" size={18} />
+                                <div>
+                                  <p className="font-semibold text-sm text-purple-900 mb-1">Accommodation</p>
+                                  <p className="text-sm text-gray-700">{accommodation}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

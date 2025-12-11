@@ -5,6 +5,7 @@ import { tourService } from '../../services/tourService';
 import { destinationService } from '../../services/destinationService';
 import { tagService } from '../../services/tagService';
 import GuideSelector from '../checkout/GuideSelector';
+import TourItinerarySection from './TourItinerarySection';
 
 import {
   Plus,
@@ -340,7 +341,21 @@ export default function ToursManagement() {
 
         console.log('ID hướng dẫn viên đã trích xuất:', extractedGuideIds);
         console.log('ID hướng dẫn viên mặc định:', extractedDefaultGuideId);
+        // Extract itineraries
+        let extractedItineraries = [];
+        const tourItineraries = fullTour.Itineraries || fullTour.itineraries || [];
+        if (Array.isArray(tourItineraries)) {
+          extractedItineraries = tourItineraries.map(item => ({
+            dayNumber: item.DayNumber || item.dayNumber || 0,
+            title: item.Title || item.title || '',
+            description: item.Description || item.description || '',
+            activities: item.Activities || item.activities || '',
+            meals: item.Meals || item.meals || '',
+            accommodation: item.Accommodation || item.accommodation || ''
+          })).sort((a, b) => a.dayNumber - b.dayNumber);
+        }
 
+        console.log('Lịch trình đã trích xuất:', extractedItineraries);
         // Map full tour
         const mappedTour = {
           id: fullTour.Id || fullTour.id,
@@ -364,9 +379,9 @@ export default function ToursManagement() {
           metaTitle: fullTour.MetaTitle || fullTour.metaTitle,
           metaDescription: fullTour.MetaDescription || fullTour.metaDescription,
           images: extractedImages,
-          itineraries: fullTour.Itineraries || fullTour.itineraries || [],
-          includes: (fullTour.Includes || fullTour.includes || []).map(i => i.Description || i.description || i),
-          excludes: (fullTour.Excludes || fullTour.excludes || []).map(e => e.Description || e.description || e),
+          itineraries: extractedItineraries,
+          includes: (fullTour.Includes || fullTour.includes || []).map(i => i.Item || i.item || i),
+          excludes: (fullTour.Excludes || fullTour.excludes || []).map(e => e.Item || e.item || e),
           guideIds: extractedGuideIds,
           defaultGuideId: extractedDefaultGuideId,
           tagIds: extractedTagIds
@@ -976,7 +991,7 @@ export default function ToursManagement() {
                       </div>
                       <div className="flex items-center gap-1 text-blue-600 font-bold">
                         <WalletCards size={18} />
-                        <span>{t.price?.toLocaleString() } đ</span>
+                        <span>{t.price?.toLocaleString()} đ</span>
                       </div>
                     </div>
 
@@ -1592,7 +1607,7 @@ export default function ToursManagement() {
                       />
                     </div>
                   </div>
-                  
+
 
                   {/* SEO */}
                   <div className="border-t pt-4 space-y-4">
@@ -1630,6 +1645,12 @@ export default function ToursManagement() {
                       </p>
                     </div>
                   </div>
+                  {/* Lịch trình tour */}
+                  <TourItinerarySection
+                    formData={formData}
+                    setFormData={setFormData}
+                    errors={errors}
+                  />
 
                   {/* Nút Hành Động */}
                   <div className="flex gap-3 justify-end pt-6 border-t sticky bottom-0 bg-white">

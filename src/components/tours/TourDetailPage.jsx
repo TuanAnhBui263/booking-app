@@ -4,11 +4,11 @@ import { tourService } from '../../services/tourService';
 import { favoriteService } from '../../services/favoriteService';
 import { useAuth } from '../../contexts/AuthContext';
 import TourReviewsSection from '../reviews/TourReviewsSection';
-import { 
-  MapPin, 
-  Star, 
-  Clock, 
-  Users, 
+import {
+  MapPin,
+  Star,
+  Clock,
+  Users,
   Calendar,
   CheckCircle,
   XCircle,
@@ -31,10 +31,10 @@ const TourDetailPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  
+
   // Get tour ID from query params or location state
   const tourId = searchParams.get('id') || location.state?.tourData?.id;
-  
+
   const [tour, setTour] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -67,7 +67,7 @@ const TourDetailPage = () => {
       console.log('Fetching tour details for ID:', tourId);
       const response = await tourService.getTourById(tourId);
       console.log('Tour details response:', response);
-      
+
       // Handle different response structures
       let tourData = response;
       if (response?.data) {
@@ -75,7 +75,7 @@ const TourDetailPage = () => {
       } else if (response?.Data) {
         tourData = response.Data;
       }
-      
+
       setTour(tourData);
     } catch (err) {
       console.error('Error fetching tour details:', err);
@@ -117,9 +117,9 @@ const TourDetailPage = () => {
       alert('Vui lòng chọn ngày khởi hành');
       return;
     }
-    
+
     if (!tour) return;
-    
+
     // Normalize tour data
     const tourIdValue = tour.id || tour.Id;
     const tourName = tour.name || tour.Name || tour.title || '';
@@ -127,7 +127,7 @@ const TourDetailPage = () => {
     const tourPrice = tour.price || tour.Price || 0;
     const tourLocation = tour.location || tour.Location || tour.destinationName || tour.DestinationName || '';
     const tourDuration = tour.duration || tour.Duration || '';
-    
+
     navigate('/checkout', {
       state: {
         tourData: {
@@ -180,9 +180,20 @@ const TourDetailPage = () => {
   }
 
   // Normalize tour data
-  const tourName = getTourField('name', getTourField('title', 'Tour'));
-  const tourImage = getTourField('primaryImageUrl', getTourField('imageUrl', getTourField('image', 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80')));
+  const firstImage = (() => {
+    const images = tour.images || tour.Images || [];
+    if (images.length > 0) {
+      const img = images[0];
+      return typeof img === 'string' 
+        ? img 
+        : (img.imageUrl || img.ImageUrl || img.url || img.Url || '');
+    }
+    return '';
+  })();
+  const tourImage = firstImage;
+
   const tourLocation = getTourField('location', getTourField('destinationName', 'N/A'));
+  const tourName = getTourField('name', getTourField('title', 'Tour'));
   const tourPrice = getTourField('price', 0);
   const tourDuration = getTourField('duration', `${getTourField('durationDays', 0)} ngày`);
   const tourRating = getTourField('averageRating', getTourField('rating', 0));
@@ -191,16 +202,15 @@ const TourDetailPage = () => {
   const tourCategory = getTourField('category', getTourField('type', ''));
   const tourDescription = getTourField('description', '');
   const tourMaxGuests = getTourField('maxGuests', 0);
-  
+
   // Get images array
-  const tourImages = tour.images || tour.Images || tour.gallery || tour.Gallery || [];
-  if (tourImage && !tourImages.includes(tourImage)) {
-    tourImages.unshift(tourImage);
-  }
-  
+  const tourImages = (tour.images || tour.Images || tour.gallery || tour.Gallery || [])
+  .map(img => typeof img === 'string' ? img : (img.imageUrl || img.ImageUrl || img.url || img.Url || ''))
+  .filter(Boolean);
+
   // Get itinerary
   const tourItinerary = tour.itineraries || tour.Itineraries || tour.itinerary || [];
-  
+
   // Get includes/excludes
   const tourIncludes = tour.includes || tour.Includes || [];
   const tourExcludes = tour.excludes || tour.Excludes || [];
@@ -210,7 +220,7 @@ const TourDetailPage = () => {
       {/* Back Button */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-gray-600 hover:text-cyan-600 transition-colors"
           >
@@ -222,20 +232,19 @@ const TourDetailPage = () => {
 
       {/* Hero Section */}
       <div className="relative h-[500px]">
-        <img 
-          src={tourImage} 
+        <img
+          src={tourImage}
           alt={tourName}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-        
+
         {/* Actions */}
         <div className="absolute top-6 right-6 flex gap-3">
-          <button 
+          <button
             onClick={toggleFavorite}
-            className={`p-3 rounded-full backdrop-blur-md transition-all ${
-              liked ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-700 hover:bg-white'
-            }`}
+            className={`p-3 rounded-full backdrop-blur-md transition-all ${liked ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-700 hover:bg-white'
+              }`}
           >
             <Heart size={20} className={liked ? 'fill-current' : ''} />
           </button>
@@ -254,11 +263,10 @@ const TourDetailPage = () => {
                 </span>
               )}
               {tourDifficulty && (
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                  tourDifficulty === 'Easy' || tourDifficulty === 'Dễ' ? 'bg-green-500 text-white' :
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${tourDifficulty === 'Easy' || tourDifficulty === 'Dễ' ? 'bg-green-500 text-white' :
                   tourDifficulty === 'Medium' || tourDifficulty === 'Trung bình' ? 'bg-yellow-500 text-white' :
-                  'bg-red-500 text-white'
-                }`}>
+                    'bg-red-500 text-white'
+                  }`}>
                   {tourDifficulty}
                 </span>
               )}
@@ -307,11 +315,10 @@ const TourDetailPage = () => {
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`pb-4 font-semibold transition-colors relative ${
-                      activeTab === tab 
-                        ? 'text-cyan-600' 
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                    className={`pb-4 font-semibold transition-colors relative ${activeTab === tab
+                      ? 'text-cyan-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                      }`}
                   >
                     {tab === 'overview' && 'Tổng quan'}
                     {tab === 'itinerary' && 'Lịch trình'}
@@ -329,47 +336,91 @@ const TourDetailPage = () => {
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Giới thiệu</h3>
                 <p className="text-gray-700 leading-relaxed mb-6">{tourDescription || 'Chưa có mô tả'}</p>
-                
+
                 {/* Gallery */}
                 {tourImages.length > 0 && (
                   <>
                     <h3 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Thư viện ảnh</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {tourImages.slice(0, 8).map((img, idx) => (
-                        <div key={idx} className="aspect-square rounded-xl overflow-hidden">
-                          <img 
-                            src={img || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80'} 
-                            alt={`Gallery ${idx + 1}`}
-                            className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                          />
-                        </div>
-                      ))}
+                      {tourImages.slice(0, 8).map((img, idx) => {
+                        const imageUrl = typeof img === 'string'
+                          ? img
+                          : (img.imageUrl || img.ImageUrl || img.url || img.Url || '');
+
+                        if (!imageUrl) return null;
+
+                        return (
+                          <div key={idx} className="aspect-square rounded-xl overflow-hidden">
+                            <img
+                              src={imageUrl}
+                              alt={`Gallery ${idx + 1}`}
+                              className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </>
                 )}
               </div>
             )}
 
-            {activeTab === 'itinerary' && (
+{activeTab === 'itinerary' && (
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Lịch trình chi tiết</h3>
                 {tourItinerary.length > 0 ? (
                   <div className="space-y-6">
                     {tourItinerary.map((day, idx) => {
-                      const dayNumber = day.day || day.Day || day.dayNumber || day.DayNumber || idx + 1;
+                      const dayNumber = day.dayNumber || day.DayNumber || day.day || day.Day || idx + 1;
                       const dayTitle = day.title || day.Title || day.name || day.Name || `Ngày ${dayNumber}`;
                       const dayDescription = day.description || day.Description || day.content || day.Content || '';
-                      
+                      const activities = day.activities || day.Activities || '';
+                      const meals = day.meals || day.Meals || '';
+                      const accommodation = day.accommodation || day.Accommodation || '';
+
                       return (
-                        <div key={idx} className="flex gap-6">
+                        <div key={day.id || idx} className="flex gap-6">
                           <div className="flex-shrink-0">
                             <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                               {dayNumber}
                             </div>
                           </div>
                           <div className="flex-1 pb-6 border-b border-gray-200 last:border-0">
-                            <h4 className="text-xl font-bold text-gray-900 mb-2">{dayTitle}</h4>
-                            <p className="text-gray-700 leading-relaxed">{dayDescription}</p>
+                            <h4 className="text-xl font-bold text-gray-900 mb-3">{dayTitle}</h4>
+                            <p className="text-gray-700 leading-relaxed mb-4">{dayDescription}</p>
+                            
+                            {/* Additional Details Grid */}
+                            <div className="grid md:grid-cols-3 gap-4">
+                              {activities && (
+                                <div className="bg-blue-50 rounded-lg p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Compass className="text-blue-600" size={16} />
+                                    <span className="font-semibold text-sm text-blue-900">Hoạt động</span>
+                                  </div>
+                                  <p className="text-sm text-gray-700">{activities}</p>
+                                </div>
+                              )}
+                              
+                              {meals && (
+                                <div className="bg-orange-50 rounded-lg p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <CheckCircle className="text-orange-600" size={16} />
+                                    <span className="font-semibold text-sm text-orange-900">Bữa ăn</span>
+                                  </div>
+                                  <p className="text-sm text-gray-700">{meals}</p>
+                                </div>
+                              )}
+                              
+                              {accommodation && (
+                                <div className="bg-purple-50 rounded-lg p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Mountain className="text-purple-600" size={16} />
+                                    <span className="font-semibold text-sm text-purple-900">Lưu trú</span>
+                                  </div>
+                                  <p className="text-sm text-gray-700">{accommodation}</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -390,7 +441,9 @@ const TourDetailPage = () => {
                       {tourIncludes.map((item, idx) => (
                         <div key={idx} className="flex items-start gap-3">
                           <CheckCircle className="text-green-500 flex-shrink-0 mt-1" size={20} />
-                          <span className="text-gray-700">{typeof item === 'string' ? item : item.name || item.Name || ''}</span>
+                          <span className="text-gray-700">
+                            {typeof item === 'string' ? item : (item.Item || item.item || '')}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -405,7 +458,9 @@ const TourDetailPage = () => {
                       {tourExcludes.map((item, idx) => (
                         <div key={idx} className="flex items-start gap-3">
                           <XCircle className="text-red-500 flex-shrink-0 mt-1" size={20} />
-                          <span className="text-gray-700">{typeof item === 'string' ? item : item.name || item.Name || ''}</span>
+                          <span className="text-gray-700">
+                            {typeof item === 'string' ? item : (item.Item || item.item || '')}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -450,7 +505,7 @@ const TourDetailPage = () => {
                   </label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input 
+                    <input
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
@@ -466,14 +521,14 @@ const TourDetailPage = () => {
                     Số lượng khách
                   </label>
                   <div className="flex items-center gap-4">
-                    <button 
+                    <button
                       onClick={() => setNumberOfGuests(Math.max(1, numberOfGuests - 1))}
                       className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-700"
                     >
                       -
                     </button>
                     <span className="flex-1 text-center font-bold text-lg">{numberOfGuests}</span>
-                    <button 
+                    <button
                       onClick={() => setNumberOfGuests(Math.min(12, numberOfGuests + 1))}
                       className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-700"
                     >
@@ -519,7 +574,7 @@ const TourDetailPage = () => {
                 </div>
 
                 {/* Book Button */}
-                <button 
+                <button
                   onClick={handleBookNow}
                   className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all flex items-center justify-center gap-2 group"
                 >
