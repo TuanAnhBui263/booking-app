@@ -19,6 +19,8 @@ import RegisterPage from './components/auth/RegisterPage';
 import PaymentSuccessPage from './components/pages/PaymentSuccessPage';
 import PaymentFailurePage from './components/pages/PaymentFailurePage';
 import TourDetail from './components/tours/TourDetail';
+import TourDeparturesManagement from './components/admin/TourDeparturesManagement';
+
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -29,7 +31,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   }
 
   const userRole = user?.role || user?.Role;
-  
+
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
     // Redirect dựa trên role
     if (userRole === 'Admin') {
@@ -82,6 +84,15 @@ const App = () => {
 
             {/* Admin tour detail */}
             <Route path="/admin/tours/:id" element={<TourDetail />} />
+            { }
+            <Route
+              path="/admin/tours/:tourId/departures"
+              element={
+                <ProtectedRoute allowedRoles={['Admin']}>
+                  <TourDeparturesManagement />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Guide Dashboard - Protected with nested routes */}
             <Route
@@ -109,25 +120,25 @@ const App = () => {
 
             {/* Login */}
             <Route path="/login" element={<LoginPage />} />
-              {/* Register */}
-              <Route path="/register" element={<RegisterPage />} />
+            {/* Register */}
+            <Route path="/register" element={<RegisterPage />} />
 
             {/* Admin - Protected */}
-            <Route 
-              path="/admin" 
+            <Route
+              path="/admin"
               element={
                 <ProtectedRoute allowedRoles={['Admin']}>
                   <AdminPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin/*" 
+            <Route
+              path="/admin/*"
               element={
                 <ProtectedRoute allowedRoles={['Admin']}>
                   <AdminPage />
                 </ProtectedRoute>
-              } 
+              }
             />
 
             {/* Payment Pages */}

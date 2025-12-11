@@ -6,6 +6,7 @@ import { destinationService } from '../../services/destinationService';
 import { tagService } from '../../services/tagService';
 import GuideSelector from '../checkout/GuideSelector';
 import TourItinerarySection from './TourItinerarySection';
+import TourDeparturesManagement from './TourDeparturesManagement';
 
 import {
   Plus,
@@ -26,7 +27,8 @@ import {
   CheckCircle,
   Filter,
   RefreshCw,
-  Loader
+  Loader,
+  Calendar
 } from 'lucide-react';
 
 // Enums
@@ -1018,6 +1020,16 @@ export default function ToursManagement() {
                         <Eye size={16} />
                         Xem
                       </button>
+
+                      {/* THÊM NÚT MỚI */}
+                      <button
+                        onClick={() => navigate(`/admin/tours/${t.id}/departures`)}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                      >
+                        <Calendar size={16} />
+                        Chuyến đi
+                      </button>
+
                       <button
                         onClick={() => openModal('edit', tour)}
                         className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
