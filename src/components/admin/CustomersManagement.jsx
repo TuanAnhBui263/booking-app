@@ -571,16 +571,7 @@ const CustomersManagement = () => {
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <WalletCards className="text-purple-600" size={24} />
-              </div>
-              <span className="font-semibold text-gray-700">Avg. Spending</span>
-            </div>
-            <p className="text-3xl font-bold text-gray-900">1,245 đ</p>
-            <p className="text-sm text-gray-500 mt-2">Per customer</p>
-          </div>
+        
         </div>
 
         {/* Main Content */}

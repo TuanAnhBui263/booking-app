@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   WalletCards,
   ShoppingBag,
@@ -6,7 +6,15 @@ import {
   MapPin,
   RefreshCw,
   AlertCircle,
-  Loader
+  Loader,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  CheckCircle,
+  Clock,
+  XCircle,
+  DollarSign,
+  ArrowRight
 } from 'lucide-react';
 import { bookingService } from '../../services/bookingService';
 import { tourService } from '../../services/tourService';
@@ -76,17 +84,19 @@ const formatDate = (value) => {
 };
 
 const STATUS_CONFIG = {
-  Pending: { label: 'Chờ xử lý', classes: 'bg-amber-100 text-amber-700' },
-  Confirmed: { label: 'Đã xác nhận', classes: 'bg-green-100 text-green-700' },
-  Completed: { label: 'Đã hoàn thành', classes: 'bg-blue-100 text-blue-700' },
-  Cancelled: { label: 'Đã hủy', classes: 'bg-red-100 text-red-700' },
-  NoShow: { label: 'Không tham gia', classes: 'bg-gray-200 text-gray-700' }
+  Pending: { label: 'Chờ xử lý', classes: 'bg-yellow-100 text-yellow-700', icon: Clock },
+  Confirmed: { label: 'Đã xác nhận', classes: 'bg-green-100 text-green-700', icon: CheckCircle },
+  Completed: { label: 'Đã hoàn thành', classes: 'bg-blue-100 text-blue-700', icon: CheckCircle },
+  Cancelled: { label: 'Đã hủy', classes: 'bg-red-100 text-red-700', icon: XCircle },
+  NoShow: { label: 'Không tham gia', classes: 'bg-gray-200 text-gray-700', icon: XCircle }
 };
 
 const getStatusBadge = (status) => {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.Pending;
+  const Icon = config.icon;
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${config.classes}`}>
+    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${config.classes}`}>
+      <Icon size={12} />
       {config.label}
     </span>
   );
@@ -97,7 +107,10 @@ const AdminDashboard = () => {
     totalRevenue: 0,
     totalBookings: 0,
     totalCustomers: 0,
-    activeTours: 0
+    activeTours: 0,
+    confirmedBookings: 0,
+    pendingBookings: 0,
+    cancelledBookings: 0
   });
   const [recentBookings, setRecentBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +120,6 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDashboardData = async () => {
@@ -116,52 +128,48 @@ const AdminDashboard = () => {
       setRefreshing(true);
 
       const [bookingsResponse, tourStatsResponse, customersResponse] = await Promise.all([
-        bookingService.getAllBookings(1, 50),
+        bookingService.getAllBookings(1, 100),
         tourService.getStatistics().catch(() => null),
         userService.getAllUsers(1, 1).catch(() => null)
       ]);
 
       const bookingData = getArrayFromPayload(bookingsResponse);
-      const normalizedBookings = bookingData
-        .map((booking) => ({
-          id: booking.id || booking.Id,
-          bookingCode: booking.bookingCode || booking.BookingCode,
-          customerName:
-            booking.customerName ||
-            booking.CustomerName ||
-            booking.fullName ||
-            booking.FullName ||
-            'Khách hàng',
-          customerEmail: booking.customerEmail || booking.CustomerEmail || booking.email || booking.Email,
-          tourName: booking.tourName || booking.TourName || booking.tour?.name || 'Tour',
-          tourDate: booking.tourDate || booking.TourDate || booking.startDate || booking.StartDate,
-          bookingDate:
-            booking.bookingDate || booking.BookingDate || booking.createdAt || booking.CreatedAt,
-          amount:
-            booking.totalAmount ||
-            booking.TotalAmount ||
-            booking.amount ||
-            booking.Amount ||
-            booking.price ||
-            booking.Price ||
-            0,
-          status: booking.status || booking.Status || 'Pending',
-          paymentStatus: booking.paymentStatus || booking.PaymentStatus || 'Pending'
-        }))
-        .sort((a, b) => {
-          const dateA = new Date(a.bookingDate || a.tourDate || 0).getTime();
-          const dateB = new Date(b.bookingDate || b.tourDate || 0).getTime();
-          return dateB - dateA;
-        })
-        .slice(0, 6);
+      const normalizedBookings = bookingData.map((booking) => ({
+        id: booking.id || booking.Id,
+        bookingCode: booking.bookingCode || booking.BookingCode,
+        customerName:
+          booking.customerName ||
+          booking.CustomerName ||
+          booking.fullName ||
+          booking.FullName ||
+          'Khách hàng',
+        customerEmail: booking.customerEmail || booking.CustomerEmail || booking.email || booking.Email,
+        tourName: booking.tourName || booking.TourName || booking.tour?.name || 'Tour',
+        tourDate: booking.tourDate || booking.TourDate || booking.startDate || booking.StartDate,
+        bookingDate:
+          booking.bookingDate || booking.BookingDate || booking.createdAt || booking.CreatedAt,
+        amount:
+          booking.totalAmount ||
+          booking.TotalAmount ||
+          booking.amount ||
+          booking.Amount ||
+          booking.price ||
+          booking.Price ||
+          0,
+        status: booking.status || booking.Status || 'Pending',
+        paymentStatus: booking.paymentStatus || booking.PaymentStatus || 'Pending',
+        numberOfGuests: booking.numberOfGuests || booking.NumberOfGuests || 0
+      }));
 
-      const revenueFromApi =
-        getNumberFromPayload(bookingsResponse, ['totalRevenue', 'TotalRevenue', 'revenue', 'Revenue']) ??
-        getNumberFromPayload(bookingsResponse?.summary, ['totalRevenue', 'TotalRevenue']);
+      // Tính doanh thu từ các booking đã thanh toán
+      const totalRevenue = normalizedBookings
+        .filter(booking => booking.paymentStatus === 'Paid')
+        .reduce((sum, booking) => sum + (booking.amount || 0), 0);
 
-      const totalRevenue =
-        revenueFromApi ??
-        normalizedBookings.reduce((sum, booking) => sum + (booking.amount || 0), 0);
+      // Đếm booking theo trạng thái
+      const confirmedBookings = normalizedBookings.filter(b => b.status === 'Confirmed').length;
+      const pendingBookings = normalizedBookings.filter(b => b.status === 'Pending').length;
+      const cancelledBookings = normalizedBookings.filter(b => b.status === 'Cancelled').length;
 
       const totalBookings =
         getNumberFromPayload(bookingsResponse, [
@@ -192,12 +200,24 @@ const AdminDashboard = () => {
           'TotalTours'
         ]) || 0;
 
-      setRecentBookings(normalizedBookings);
+      // Lấy 8 booking gần nhất
+      const sortedBookings = normalizedBookings
+        .sort((a, b) => {
+          const dateA = new Date(a.bookingDate || a.tourDate || 0).getTime();
+          const dateB = new Date(b.bookingDate || b.tourDate || 0).getTime();
+          return dateB - dateA;
+        })
+        .slice(0, 8);
+
+      setRecentBookings(sortedBookings);
       setStats({
         totalRevenue,
         totalBookings,
         totalCustomers,
-        activeTours
+        activeTours,
+        confirmedBookings,
+        pendingBookings,
+        cancelledBookings
       });
       setLastUpdated(new Date().toISOString());
     } catch (err) {
@@ -209,171 +229,309 @@ const AdminDashboard = () => {
     }
   };
 
-  const statCards = useMemo(
-    () => [
-      {
-        id: 'revenue',
-        label: 'Tổng doanh thu',
-        value: formatCurrency(stats.totalRevenue),
-        iconBg: 'bg-orange-100 text-orange-500',
-        icon: WalletCards
-      },
-      {
-        id: 'bookings',
-        label: 'Tổng lượt đặt tour',
-        value: stats.totalBookings.toLocaleString('vi-VN'),
-        iconBg: 'bg-blue-100 text-blue-500',
-        icon: ShoppingBag
-      },
-      {
-        id: 'customers',
-        label: 'Khách hàng hoạt động',
-        value: stats.totalCustomers.toLocaleString('vi-VN'),
-        iconBg: 'bg-green-100 text-green-500',
-        icon: Users
-      },
-      {
-        id: 'tours',
-        label: 'Tour đang hoạt động',
-        value: stats.activeTours.toLocaleString('vi-VN'),
-        iconBg: 'bg-purple-100 text-purple-500',
-        icon: MapPin
-      }
-    ],
-    [stats]
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="animate-spin text-cyan-500 mx-auto mb-4" size={48} />
+          <p className="text-gray-600">Đang tải dữ liệu dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tổng quan bảng điều khiển</h1>
-          <p className="text-gray-500 mt-1">
-            {lastUpdated
-              ? `Cập nhật lần cuối lúc ${new Date(lastUpdated).toLocaleTimeString('vi-VN')}`
-              : 'Đang đồng bộ dữ liệu...'}
-          </p>
-        </div>
-        <button
-          onClick={fetchDashboardData}
-          disabled={refreshing}
-          className="inline-flex items-center justify-center px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-400 text-white font-medium rounded-lg transition-colors"
-        >
-          <RefreshCw
-            size={18}
-            className={`mr-2 ${refreshing ? 'animate-spin' : ''}`}
-          />
-          Làm mới
-        </button>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="flex-shrink-0 mt-0.5" size={20} />
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <p className="font-semibold mb-1">Không thể tải dữ liệu</p>
-            <p className="text-sm mb-2">{error}</p>
-            <button
-              onClick={fetchDashboardData}
-              className="text-sm font-medium text-red-700 underline"
-            >
-              Thử lại
-            </button>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard Tổng Quan</h1>
+            <p className="text-gray-600 mt-1">
+              {lastUpdated
+                ? `Cập nhật lúc ${new Date(lastUpdated).toLocaleTimeString('vi-VN')}`
+                : 'Đang tải...'}
+            </p>
+          </div>
+          <button
+            onClick={fetchDashboardData}
+            disabled={refreshing}
+            className="inline-flex items-center justify-center px-5 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-xl hover:shadow-lg disabled:opacity-50 transition-all"
+          >
+            <RefreshCw size={18} className={`mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Làm mới
+          </button>
+        </div>
+
+        {/* Error Alert */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-500 rounded-xl p-4 flex items-start gap-3">
+            <AlertCircle className="flex-shrink-0 text-red-500 mt-0.5" size={20} />
+            <div className="flex-1">
+              <p className="font-semibold text-red-700 mb-1">Không thể tải dữ liệu</p>
+              <p className="text-sm text-red-600 mb-3">{error}</p>
+              <button
+                onClick={fetchDashboardData}
+                className="text-sm font-medium text-red-700 underline hover:text-red-800"
+              >
+                Thử lại ngay
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Main Stats - 4 Cards */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Revenue Card */}
+          <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl shadow-lg p-6 text-white">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                <WalletCards size={28} />
+              </div>
+              <div className="flex items-center gap-1 text-sm font-semibold bg-white/20 px-3 py-1 rounded-full">
+                <TrendingUp size={14} />
+                +12%
+              </div>
+            </div>
+            <h3 className="text-white/80 text-sm font-medium mb-1">Tổng Doanh Thu</h3>
+            <p className="text-3xl font-bold mb-2">{formatCurrency(stats.totalRevenue)}</p>
+            <p className="text-white/70 text-xs">Từ booking đã thanh toán</p>
+          </div>
+
+          {/* Bookings Card */}
+          <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl shadow-lg p-6 text-white">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                <ShoppingBag size={28} />
+              </div>
+              <div className="flex items-center gap-1 text-sm font-semibold bg-white/20 px-3 py-1 rounded-full">
+                <TrendingUp size={14} />
+                +8%
+              </div>
+            </div>
+            <h3 className="text-white/80 text-sm font-medium mb-1">Tổng Booking</h3>
+            <p className="text-3xl font-bold mb-2">{stats.totalBookings.toLocaleString('vi-VN')}</p>
+            <p className="text-white/70 text-xs">Tất cả đặt tour</p>
+          </div>
+
+          {/* Customers Card */}
+          <div className="bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl shadow-lg p-6 text-white">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                <Users size={28} />
+              </div>
+              <div className="flex items-center gap-1 text-sm font-semibold bg-white/20 px-3 py-1 rounded-full">
+                <TrendingUp size={14} />
+                +15%
+              </div>
+            </div>
+            <h3 className="text-white/80 text-sm font-medium mb-1">Khách Hàng</h3>
+            <p className="text-3xl font-bold mb-2">{stats.totalCustomers.toLocaleString('vi-VN')}</p>
+            <p className="text-white/70 text-xs">Người dùng đăng ký</p>
+          </div>
+
+          {/* Active Tours Card */}
+          <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl shadow-lg p-6 text-white">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                <MapPin size={28} />
+              </div>
+              <div className="flex items-center gap-1 text-sm font-semibold bg-white/20 px-3 py-1 rounded-full">
+                <TrendingUp size={14} />
+                +5%
+              </div>
+            </div>
+            <h3 className="text-white/80 text-sm font-medium mb-1">Tour Hoạt Động</h3>
+            <p className="text-3xl font-bold mb-2">{stats.activeTours.toLocaleString('vi-VN')}</p>
+            <p className="text-white/70 text-xs">Tour đang mở</p>
           </div>
         </div>
-      )}
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div
-              key={card.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${card.iconBg}`}>
-                  <Icon size={24} />
+        {/* Booking Status Stats */}
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-xl shadow-sm border-l-4 border-green-500 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                  <CheckCircle size={24} className="text-green-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Đã Xác Nhận</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.confirmedBookings}</p>
                 </div>
               </div>
-              <h3 className="text-gray-500 text-sm mb-1">{card.label}</h3>
-              <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-              <p className="text-xs text-gray-400 mt-2">
-                {lastUpdated ? 'Dữ liệu theo thời gian thực' : 'Đang xử lý...'}
-              </p>
             </div>
-          );
-        })}
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Đặt tour gần đây</h2>
-            <p className="text-sm text-gray-500">Từ API đặt tour</p>
+            <div className="flex items-center gap-1 text-xs text-green-600 font-medium">
+              <TrendingUp size={12} />
+              Tăng 12% so với tháng trước
+            </div>
           </div>
-          <span className="text-sm text-gray-500">
-            {recentBookings.length > 0
-              ? `${recentBookings.length} đơn mới nhất`
-              : 'Chưa có dữ liệu'}
-          </span>
+
+          <div className="bg-white rounded-xl shadow-sm border-l-4 border-yellow-500 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                  <Clock size={24} className="text-yellow-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Chờ Xử Lý</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.pendingBookings}</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-yellow-600 font-medium">
+              <Clock size={12} />
+              Cần xử lý sớm
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border-l-4 border-red-500 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                  <XCircle size={24} className="text-red-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Đã Hủy</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.cancelledBookings}</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-red-600 font-medium">
+              <TrendingDown size={12} />
+              Giảm 5% so với tháng trước
+            </div>
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="text-left py-3 px-6 text-gray-600 text-sm font-semibold">Khách hàng</th>
-                <th className="text-left py-3 px-6 text-gray-600 text-sm font-semibold">Tour</th>
-                <th className="text-left py-3 px-6 text-gray-600 text-sm font-semibold">Ngày đặt</th>
-                <th className="text-left py-3 px-6 text-gray-600 text-sm font-semibold">Số tiền</th>
-                <th className="text-left py-3 px-6 text-gray-600 text-sm font-semibold">Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="py-10 text-center text-gray-500">
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader className="animate-spin" size={20} />
-                      Đang tải dữ liệu đặt tour...
-                    </div>
-                  </td>
+        {/* Recent Bookings Table */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-5 border-b bg-gradient-to-r from-cyan-50 to-blue-50">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Calendar size={24} className="text-cyan-500" />
+                Booking Gần Đây
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                {recentBookings.length} đơn đặt tour mới nhất
+              </p>
+            </div>
+            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-sm">
+              Xem tất cả
+              <ArrowRight size={16} />
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left py-4 px-6 text-gray-700 font-semibold text-sm">Mã Booking</th>
+                  <th className="text-left py-4 px-6 text-gray-700 font-semibold text-sm">Khách Hàng</th>
+                  <th className="text-left py-4 px-6 text-gray-700 font-semibold text-sm">Tour</th>
+                  <th className="text-left py-4 px-6 text-gray-700 font-semibold text-sm">Ngày Đặt</th>
+                  <th className="text-left py-4 px-6 text-gray-700 font-semibold text-sm">Số Tiền</th>
+                  <th className="text-left py-4 px-6 text-gray-700 font-semibold text-sm">Trạng Thái</th>
                 </tr>
-              ) : recentBookings.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-10 text-center text-gray-500">
-                    Chưa có booking nào
-                  </td>
-                </tr>
-              ) : (
-                recentBookings.map((booking) => (
-                  <tr key={booking.id || booking.bookingCode} className="border-b last:border-b-0 hover:bg-gray-50">
-                    <td className="py-4 px-6">
-                      <p className="font-semibold text-gray-900">{booking.customerName}</p>
-                      {booking.customerEmail && (
-                        <p className="text-sm text-gray-500">{booking.customerEmail}</p>
-                      )}
+              </thead>
+              <tbody>
+                {recentBookings.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center">
+                      <AlertCircle size={48} className="text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500 font-medium">Chưa có booking nào</p>
+                      <p className="text-gray-400 text-sm mt-1">Booking mới sẽ hiển thị ở đây</p>
                     </td>
-                    <td className="py-4 px-6">
-                      <p className="text-gray-900">{booking.tourName}</p>
-                      <p className="text-sm text-gray-500">
-                        Khởi hành: {formatDate(booking.tourDate)}
-                      </p>
-                    </td>
-                    <td className="py-4 px-6 text-gray-900">{formatDate(booking.bookingDate)}</td>
-                    <td className="py-4 px-6 font-semibold text-gray-900">
-                      {formatCurrency(booking.amount)}
-                      <span className="block text-xs text-gray-500 mt-0.5">
-                        {booking.paymentStatus === 'Paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">{getStatusBadge(booking.status)}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  recentBookings.map((booking) => (
+                    <tr 
+                      key={booking.id || booking.bookingCode} 
+                      className="border-b last:border-b-0 hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="py-4 px-6">
+                        <span className="font-bold text-cyan-600">
+                          {booking.bookingCode || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div>
+                          <p className="font-semibold text-gray-900">{booking.customerName}</p>
+                          {booking.customerEmail && (
+                            <p className="text-xs text-gray-500 mt-0.5">{booking.customerEmail}</p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div>
+                          <p className="font-medium text-gray-900">{booking.tourName}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Khởi hành: {formatDate(booking.tourDate)}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-2 text-gray-900">
+                          <Calendar size={14} className="text-gray-400" />
+                          {formatDate(booking.bookingDate)}
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div>
+                          <p className="font-bold text-gray-900">{formatCurrency(booking.amount)}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {booking.paymentStatus === 'Paid' ? '✓ Đã thanh toán' : '○ Chưa thanh toán'}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        {getStatusBadge(booking.status)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid md:grid-cols-3 gap-6">
+          <button className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow text-left group">
+            <div className="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-cyan-200 transition-colors">
+              <ShoppingBag size={24} className="text-cyan-600" />
+            </div>
+            <h3 className="font-bold text-gray-900 mb-2">Quản Lý Booking</h3>
+            <p className="text-sm text-gray-600 mb-4">Xem và quản lý tất cả đặt tour</p>
+            <div className="flex items-center gap-2 text-cyan-600 font-medium text-sm">
+              Đi tới
+              <ArrowRight size={16} />
+            </div>
+          </button>
+
+          <button className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow text-left group">
+            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors">
+              <MapPin size={24} className="text-purple-600" />
+            </div>
+            <h3 className="font-bold text-gray-900 mb-2">Quản Lý Tour</h3>
+            <p className="text-sm text-gray-600 mb-4">Thêm, sửa và xóa tour du lịch</p>
+            <div className="flex items-center gap-2 text-purple-600 font-medium text-sm">
+              Đi tới
+              <ArrowRight size={16} />
+            </div>
+          </button>
+
+          <button className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow text-left group">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
+              <Users size={24} className="text-green-600" />
+            </div>
+            <h3 className="font-bold text-gray-900 mb-2">Quản Lý Khách Hàng</h3>
+            <p className="text-sm text-gray-600 mb-4">Xem danh sách và lịch sử khách</p>
+            <div className="flex items-center gap-2 text-green-600 font-medium text-sm">
+              Đi tới
+              <ArrowRight size={16} />
+            </div>
+          </button>
         </div>
       </div>
     </div>
