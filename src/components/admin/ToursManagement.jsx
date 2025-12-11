@@ -482,7 +482,6 @@ export default function ToursManagement() {
 
     if (!formData.name.trim()) newErrors.name = 'Tên tour là bắt buộc';
     if (!formData.description.trim()) newErrors.description = 'Mô tả là bắt buộc';
-    if (!formData.destinationId) newErrors.destinationId = 'Điểm đến là bắt buộc';
     if (!formData.location.trim()) newErrors.location = 'Địa điểm là bắt buộc';
     if (!formData.price || formData.price <= 0) newErrors.price = 'Giá hợp lệ là bắt buộc';
     if (!formData.duration.trim()) newErrors.duration = 'Thời lượng là bắt buộc';
@@ -1145,25 +1144,6 @@ export default function ToursManagement() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Điểm Đến <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={formData.destinationId}
-                          onChange={(e) => setFormData({ ...formData, destinationId: e.target.value })}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.destinationId ? 'border-red-500' : 'border-gray-300'}`}
-                        >
-                          <option value="">Chọn điểm đến</option>
-                          {destinations.map(dest => (
-                            <option key={`form-dest-${dest.Id || dest.id}`} value={dest.Id || dest.id}>
-                              {dest.Name || dest.name}
-                            </option>
-                          ))}
-                        </select>
-                        {errors.destinationId && <p className="text-red-500 text-xs mt-1">{errors.destinationId}</p>}
-                      </div>
-
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Địa Điểm <span className="text-red-500">*</span>
