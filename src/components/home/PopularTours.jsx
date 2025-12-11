@@ -12,6 +12,7 @@ const PopularTours = () => {
   const [likedTours, setLikedTours] = useState([]);
   const [tours, setTours] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [likingTours, setLikingTours] = useState(new Set()); // Track tours being liked/unliked
 
   const filters = [
     { id: 'all', label: 'Tất cả Tour' },
@@ -26,6 +27,9 @@ const PopularTours = () => {
   useEffect(() => {
     if (isAuthenticated) {
       fetchFavorites();
+    } else {
+      // Clear favorites when logged out
+      setLikedTours([]);
     }
   }, [isAuthenticated]);
 
@@ -86,30 +90,92 @@ const PopularTours = () => {
   const fetchFavorites = async () => {
     try {
       const response = await favoriteService.getMyFavorites();
+      console.log('Favorites response:', response);
+      
+      let favoriteIds = [];
+      
+      // Handle different response formats
       if (Array.isArray(response)) {
-        const favoriteIds = response.map(fav => fav.tourId);
-        setLikedTours(favoriteIds);
+        favoriteIds = response.map(fav => fav.tourId || fav.TourId).filter(Boolean);
+      } else if (response?.data && Array.isArray(response.data)) {
+        favoriteIds = response.data.map(fav => fav.tourId || fav.TourId).filter(Boolean);
+      } else if (response?.Data && Array.isArray(response.Data)) {
+        favoriteIds = response.Data.map(fav => fav.tourId || fav.TourId).filter(Boolean);
       }
+      
+      console.log('Favorite IDs:', favoriteIds);
+      setLikedTours(favoriteIds);
     } catch (error) {
       console.error('Error fetching favorites:', error);
+      setLikedTours([]);
     }
   };
 
-  const toggleLike = async (tourId) => {
+  const toggleLike = async (tourId, e) => {
+    // Prevent event bubbling to parent elements
+    if (e) {
+      e.stopPropagation();
+    }
+
     if (!isAuthenticated) {
+      // Show a more user-friendly message
+      alert('Vui lòng đăng nhập để lưu tour yêu thích!');
       navigate('/login');
       return;
     }
 
+    // Prevent multiple clicks on the same tour
+    if (likingTours.has(tourId)) {
+      return;
+    }
+
+    // Add to loading set
+    setLikingTours(prev => new Set(prev).add(tourId));
+
+    // Optimistic update
+    const wasLiked = likedTours.includes(tourId);
+    if (wasLiked) {
+      setLikedTours(prev => prev.filter(id => id !== tourId));
+    } else {
+      setLikedTours(prev => [...prev, tourId]);
+    }
+
     try {
       const response = await favoriteService.toggleFavorite(tourId);
-      if (response.isFavorite) {
-        setLikedTours(prev => [...prev, tourId]);
+      console.log('Toggle favorite response:', response);
+      
+      // Verify the response and update accordingly
+      const isFavorite = response?.isFavorite ?? response?.IsFavorite ?? !wasLiked;
+      
+      if (isFavorite) {
+        setLikedTours(prev => {
+          if (!prev.includes(tourId)) {
+            return [...prev, tourId];
+          }
+          return prev;
+        });
       } else {
         setLikedTours(prev => prev.filter(id => id !== tourId));
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
+      
+      // Revert optimistic update on error
+      if (wasLiked) {
+        setLikedTours(prev => [...prev, tourId]);
+      } else {
+        setLikedTours(prev => prev.filter(id => id !== tourId));
+      }
+      
+      // Show error message
+      alert('Có lỗi xảy ra. Vui lòng thử lại!');
+    } finally {
+      // Remove from loading set
+      setLikingTours(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(tourId);
+        return newSet;
+      });
     }
   };
 
@@ -156,138 +222,146 @@ const PopularTours = () => {
             <p className="text-gray-500 text-lg">Không có tour nào</p>
           </div>
         ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {filteredTours.map((tour, index) => {
               // Normalize tour ID (handle both PascalCase and camelCase)
               const tourId = tour.id || tour.Id;
+              const isLiked = likedTours.includes(tourId);
+              const isLiking = likingTours.has(tourId);
               
               return (
-              <div 
-                key={tourId || `tour-${index}`}
-              className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
-            >
-              {/* Image */}
-              <div className="relative h-64 overflow-hidden">
-                <img 
-                  src={tour.primaryImageUrl || tour.imageUrl || tour.image || tour.PrimaryImageUrl || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80'} 
-                  alt={tour.name || tour.Name || tour.title || 'Tour'}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                
-                {/* Badges */}
-                <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
-                    {(tour.isFeatured || tour.IsFeatured) && (
-                      <span className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                      NỔI BẬT
-                    </span>
-                  )}
-                </div>
-
-                {/* Like Button */}
-                <button
-                  onClick={() => toggleLike(tourId)}
-                  className={`absolute top-4 right-4 p-2 rounded-full transition-all transform hover:scale-110 ${
-                    likedTours.includes(tourId)
-                      ? 'bg-red-500 text-white'
-                      : 'bg-white/90 text-gray-600 hover:bg-white'
-                  }`}
+                <div 
+                  key={tourId || `tour-${index}`}
+                  className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
                 >
-                  <Heart 
-                    size={18} 
-                    className={likedTours.includes(tourId) ? 'fill-current' : ''} 
-                  />
-                </button>
+                  {/* Image */}
+                  <div className="relative h-64 overflow-hidden">
+                    <img 
+                      src={tour.primaryImageUrl || tour.imageUrl || tour.image || tour.PrimaryImageUrl || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80'} 
+                      alt={tour.name || tour.Name || tour.title || 'Tour'}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    
+                    {/* Badges */}
+                    <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
+                      {(tour.isFeatured || tour.IsFeatured) && (
+                        <span className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                          NỔI BẬT
+                        </span>
+                      )}
+                    </div>
 
-                {/* Category Badge */}
-                {(tour.category || tour.Category || tour.type || tour.Type) && (
-                <div className="absolute bottom-4 left-4">
-                  <span className="bg-white/95 backdrop-blur-sm text-cyan-600 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
-                    <MapPin size={14} />
-                      {tour.category || tour.Category || tour.type || tour.Type}
-                  </span>
-                </div>
-                )}
-              </div>
+                    {/* Like Button */}
+                    <button
+                      onClick={(e) => toggleLike(tourId, e)}
+                      disabled={isLiking}
+                      className={`absolute top-4 right-4 p-2 rounded-full transition-all transform hover:scale-110 disabled:opacity-70 disabled:cursor-not-allowed ${
+                        isLiked
+                          ? 'bg-red-500 text-white shadow-lg shadow-red-500/50'
+                          : 'bg-white/90 text-gray-600 hover:bg-white hover:shadow-lg'
+                      }`}
+                      title={isAuthenticated ? (isLiked ? 'Bỏ thích' : 'Yêu thích') : 'Đăng nhập để lưu yêu thích'}
+                    >
+                      {isLiking ? (
+                        <Loader size={18} className="animate-spin" />
+                      ) : (
+                        <Heart 
+                          size={18} 
+                          className={isLiked ? 'fill-current' : ''} 
+                        />
+                      )}
+                    </button>
 
-              {/* Content */}
-              <div className="p-5">
-                {/* Location */}
-                <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
-                  <MapPin size={16} className="text-cyan-500" />
-                  <span className="truncate">{tour.location || tour.Location || tour.destinationName || tour.DestinationName || 'N/A'}</span>
-                </div>
-
-                {/* Title */}
-                <h3 
-                  onClick={() => {
-                    if (tourId) {
-                      navigate(`/tour?id=${tourId}`);
-                    } else {
-                      console.error('Tour ID is missing:', tour);
-                    }
-                  }}
-                  className="text-lg font-bold text-gray-900 mb-3 group-hover:text-cyan-600 transition-colors line-clamp-2 cursor-pointer"
-                >
-                  {tour.name || tour.Name || tour.title || 'Tour'}
-                </h3>
-
-                {/* Rating */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg">
-                    <Star size={16} className="fill-yellow-400 text-yellow-400" />
-                    <span className="font-bold text-yellow-600">
-                      {(tour.averageRating || tour.AverageRating || tour.rating || 0).toFixed(1)}
-                    </span>
+                    {/* Category Badge */}
+                    {(tour.category || tour.Category || tour.type || tour.Type) && (
+                      <div className="absolute bottom-4 left-4">
+                        <span className="bg-white/95 backdrop-blur-sm text-cyan-600 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
+                          <MapPin size={14} />
+                          {tour.category || tour.Category || tour.type || tour.Type}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-sm text-gray-500">
-                    <span className="font-medium">
-                      ({(tour.totalReviews || tour.TotalReviews || tour.reviews || 0).toLocaleString('vi-VN')} Đánh giá)
-                    </span>
-                  </span>
-                </div>
 
-                {/* Duration & Places */}
-                <div className="flex items-center gap-4 text-sm text-gray-600 mb-4 pb-4 border-b border-gray-100">
-                  <div className="flex items-center gap-1">
-                    <Clock size={16} className="text-cyan-500" />
-                    <span>{tour.duration || tour.Duration || `${tour.durationDays || tour.DurationDays || 0} ngày`}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <MapPin size={16} className="text-cyan-500" />
-                    <span>Tour {tour.type || tour.Type || tour.category || tour.Category || ''}</span>
-                  </div>
-                </div>
+                  {/* Content */}
+                  <div className="p-5">
+                    {/* Location */}
+                    <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
+                      <MapPin size={16} className="text-cyan-500" />
+                      <span className="truncate">{tour.location || tour.Location || tour.destinationName || tour.DestinationName || 'N/A'}</span>
+                    </div>
 
-                {/* Price & Button */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-sm text-gray-500">Từ </span>
-                    <span className="text-2xl font-bold text-red-500">
-                      {new Intl.NumberFormat('vi-VN', {
-                        style: 'currency',
-                        currency: 'VND'
-                      }).format(tour.price || tour.Price || 0)}
-                    </span>
+                    {/* Title */}
+                    <h3 
+                      onClick={() => {
+                        if (tourId) {
+                          navigate(`/tour?id=${tourId}`);
+                        } else {
+                          console.error('Tour ID is missing:', tour);
+                        }
+                      }}
+                      className="text-lg font-bold text-gray-900 mb-3 group-hover:text-cyan-600 transition-colors line-clamp-2 cursor-pointer"
+                    >
+                      {tour.name || tour.Name || tour.title || 'Tour'}
+                    </h3>
+
+                    {/* Rating */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg">
+                        <Star size={16} className="fill-yellow-400 text-yellow-400" />
+                        <span className="font-bold text-yellow-600">
+                          {(tour.averageRating || tour.AverageRating || tour.rating || 0).toFixed(1)}
+                        </span>
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        <span className="font-medium">
+                          ({(tour.totalReviews || tour.TotalReviews || tour.reviews || 0).toLocaleString('vi-VN')} Đánh giá)
+                        </span>
+                      </span>
+                    </div>
+
+                    {/* Duration & Places */}
+                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-4 pb-4 border-b border-gray-100">
+                      <div className="flex items-center gap-1">
+                        <Clock size={16} className="text-cyan-500" />
+                        <span>{tour.duration || tour.Duration || `${tour.durationDays || tour.DurationDays || 0} ngày`}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MapPin size={16} className="text-cyan-500" />
+                        <span>Tour {tour.type || tour.Type || tour.category || tour.Category || ''}</span>
+                      </div>
+                    </div>
+
+                    {/* Price & Button */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-sm text-gray-500">Từ </span>
+                        <span className="text-2xl font-bold text-red-500">
+                          {new Intl.NumberFormat('vi-VN', {
+                            style: 'currency',
+                            currency: 'VND'
+                          }).format(tour.price || tour.Price || 0)}
+                        </span>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (tourId) {
+                            navigate(`/tour?id=${tourId}`);
+                          } else {
+                            console.error('Tour ID is missing:', tour);
+                          }
+                        }}
+                        className="flex items-center gap-2 text-cyan-600 font-semibold hover:gap-3 transition-all group"
+                      >
+                        <span>Xem thêm</span>
+                        <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                      </button>
+                    </div>
                   </div>
-                  <button 
-                    onClick={() => {
-                      if (tourId) {
-                        navigate(`/tour?id=${tourId}`);
-                      } else {
-                        console.error('Tour ID is missing:', tour);
-                      }
-                    }}
-                    className="flex items-center gap-2 text-cyan-600 font-semibold hover:gap-3 transition-all group"
-                  >
-                    <span>Xem thêm</span>
-                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                  </button>
                 </div>
-              </div>
-            </div>
-            );
+              );
             })}
-        </div>
+          </div>
         )}
 
         {/* View More Button */}
