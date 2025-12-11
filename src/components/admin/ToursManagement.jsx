@@ -997,7 +997,7 @@ export default function ToursManagement() {
                     {/* Action Buttons */}
                     <div className="flex gap-2 pt-3 border-t">
                       <button
-                        onClick={() => navigate(`/tours/${t.id}`)}
+                        onClick={() => navigate(`/admin/tours/${t.id}`)}
                         className="flex-1 flex items-center justify-center gap-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
                       >
                         <Eye size={16} />

@@ -43,7 +43,9 @@ export default function TourDetail() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
-    fetchTourDetail();
+    if (id) {
+      fetchTourDetail();
+    }
   }, [id]);
 
   const fetchTourDetail = async () => {
