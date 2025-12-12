@@ -14,7 +14,10 @@ import {
   Clock,
   XCircle,
   DollarSign,
-  ArrowRight
+  ArrowRight,
+  Trophy,
+  Star,
+  TrendingUpIcon
 } from 'lucide-react';
 import { bookingService } from '../../services/bookingService';
 import { tourService } from '../../services/tourService';
@@ -113,6 +116,7 @@ const AdminDashboard = () => {
     cancelledBookings: 0
   });
   const [recentBookings, setRecentBookings] = useState([]);
+  const [topTours, setTopTours] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -122,13 +126,46 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, []);
 
+  const calculateTopTours = (bookings) => {
+    // Group bookings by tour
+    const tourRevenue = {};
+    
+    bookings.forEach(booking => {
+      const tourId = booking.tourId || booking.TourId;
+      const tourName = booking.tourName || booking.TourName || 'Unknown Tour';
+      const amount = booking.amount || 0;
+      const paymentStatus = booking.paymentStatus || booking.PaymentStatus;
+      
+      // Only count paid bookings
+      if (paymentStatus === 'Paid') {
+        if (!tourRevenue[tourId]) {
+          tourRevenue[tourId] = {
+            tourId,
+            tourName,
+            revenue: 0,
+            bookingCount: 0
+          };
+        }
+        
+        tourRevenue[tourId].revenue += amount;
+        tourRevenue[tourId].bookingCount += 1;
+      }
+    });
+    
+    // Convert to array and sort by revenue
+    const toursArray = Object.values(tourRevenue);
+    toursArray.sort((a, b) => b.revenue - a.revenue);
+    
+    return toursArray;
+  };
+
   const fetchDashboardData = async () => {
     try {
       setError(null);
       setRefreshing(true);
 
       const [bookingsResponse, tourStatsResponse, customersResponse] = await Promise.all([
-        bookingService.getAllBookings(1, 100),
+        bookingService.getAllBookings(1, 1000), // Get more bookings for accurate stats
         tourService.getStatistics().catch(() => null),
         userService.getAllUsers(1, 1).catch(() => null)
       ]);
@@ -144,6 +181,7 @@ const AdminDashboard = () => {
           booking.FullName ||
           'Khách hàng',
         customerEmail: booking.customerEmail || booking.CustomerEmail || booking.email || booking.Email,
+        tourId: booking.tourId || booking.TourId,
         tourName: booking.tourName || booking.TourName || booking.tour?.name || 'Tour',
         tourDate: booking.tourDate || booking.TourDate || booking.startDate || booking.StartDate,
         bookingDate:
@@ -161,12 +199,12 @@ const AdminDashboard = () => {
         numberOfGuests: booking.numberOfGuests || booking.NumberOfGuests || 0
       }));
 
-      // Tính doanh thu từ các booking đã thanh toán
+      // Calculate revenue from paid bookings only
       const totalRevenue = normalizedBookings
         .filter(booking => booking.paymentStatus === 'Paid')
         .reduce((sum, booking) => sum + (booking.amount || 0), 0);
 
-      // Đếm booking theo trạng thái
+      // Count bookings by status
       const confirmedBookings = normalizedBookings.filter(b => b.status === 'Confirmed').length;
       const pendingBookings = normalizedBookings.filter(b => b.status === 'Pending').length;
       const cancelledBookings = normalizedBookings.filter(b => b.status === 'Cancelled').length;
@@ -200,7 +238,7 @@ const AdminDashboard = () => {
           'TotalTours'
         ]) || 0;
 
-      // Lấy 8 booking gần nhất
+      // Get 8 most recent bookings
       const sortedBookings = normalizedBookings
         .sort((a, b) => {
           const dateA = new Date(a.bookingDate || a.tourDate || 0).getTime();
@@ -209,7 +247,11 @@ const AdminDashboard = () => {
         })
         .slice(0, 8);
 
+      // Calculate top tours by revenue
+      const toursRanked = calculateTopTours(normalizedBookings);
+
       setRecentBookings(sortedBookings);
+      setTopTours(toursRanked.slice(0, 5)); // Top 5 tours
       setStats({
         totalRevenue,
         totalBookings,
@@ -403,6 +445,100 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Top Tours by Revenue */}
+        {topTours.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-6 py-5 border-b bg-gradient-to-r from-yellow-50 to-orange-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <Trophy size={24} className="text-yellow-500" />
+                    Top Tours Theo Doanh Thu
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Xếp hạng {topTours.length} tour có doanh thu cao nhất
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="space-y-4">
+                {topTours.map((tour, index) => {
+                  const isTop = index === 0;
+                  const isBottom = index === topTours.length - 1;
+                  
+                  return (
+                    <div
+                      key={tour.tourId || index}
+                      className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                        isTop
+                          ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300'
+                          : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      {/* Rank Badge */}
+                      <div
+                        className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg ${
+                          isTop
+                            ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white'
+                            : index === 1
+                            ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white'
+                            : index === 2
+                            ? 'bg-gradient-to-br from-orange-300 to-orange-400 text-white'
+                            : 'bg-gray-200 text-gray-600'
+                        }`}
+                      >
+                        {isTop ? <Trophy size={24} /> : `#${index + 1}`}
+                      </div>
+
+                      {/* Tour Info */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-gray-900 mb-1 truncate">
+                          {tour.tourName}
+                        </h3>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <ShoppingBag size={14} />
+                            <span>{tour.bookingCount} bookings</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Revenue */}
+                      <div className="text-right">
+                        <p
+                          className={`text-2xl font-bold ${
+                            isTop ? 'text-orange-600' : 'text-gray-900'
+                          }`}
+                        >
+                          {formatCurrency(tour.revenue)}
+                        </p>
+                        {isTop && (
+                          <p className="text-xs text-orange-600 font-semibold mt-1">
+                            🏆 Cao nhất
+                          </p>
+                        )}
+                        {isBottom && topTours.length > 2 && (
+                          <p className="text-xs text-gray-500 mt-1">Thấp nhất</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {topTours.length === 0 && (
+                <div className="text-center py-12 text-gray-500">
+                  <Trophy size={48} className="text-gray-300 mx-auto mb-3" />
+                  <p className="font-medium">Chưa có dữ liệu doanh thu</p>
+                  <p className="text-sm mt-1">Thống kê sẽ hiển thị khi có booking đã thanh toán</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Recent Bookings Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
