@@ -19,7 +19,6 @@ import {
   User
 } from 'lucide-react';
 
-// Role enum - FIXED to match backend
 const UserRole = {
   Customer: 0,  
   Guide: 1,    
@@ -28,13 +27,12 @@ const UserRole = {
   Admin: 4      
 };
 
-// Convert Roles array to role number
 const getRoleFromRolesArray = (roles) => {
   if (!roles || !Array.isArray(roles) || roles.length === 0) {
-    return UserRole.Customer; // Default
+    return UserRole.Customer; 
   }
   
-  const roleString = roles[0]; // Get first role
+  const roleString = roles[0]; 
   const roleMap = {
     'Customer': UserRole.Customer,
     'Guide': UserRole.Guide,

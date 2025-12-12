@@ -1,8 +1,13 @@
+// Header.jsx - Updated with Loyalty Link
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { hasAdminAccess } from '../../utils/roleUtils';
-import { Phone, Mail, User, Menu, X, Facebook, Instagram, Twitter, Linkedin, ChevronDown, BookOpen, LogOut, Settings } from 'lucide-react';
+import { 
+  Phone, Mail, User, Menu, X, Facebook, Instagram, 
+  Twitter, Linkedin, ChevronDown, BookOpen, LogOut, 
+  Settings, Award 
+} from 'lucide-react';
 
 const Header = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -128,6 +133,14 @@ const Header = () => {
                         </Link>
                       )}
                       <Link
+                        to="/loyalty"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <Award size={16} />
+                        <span>Điểm thưởng</span>
+                      </Link>
+                      <Link
                         to="/bookings"
                         className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setShowUserMenu(false)}
@@ -154,7 +167,7 @@ const Header = () => {
       {/* Main Navigation */}
       <nav className={`px-4 transition-all duration-300 ${isScrolled ? 'py-4' : 'py-6'}`}>
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          {/* Logo - CLEAN & LARGE */}
+          {/* Logo */}
           <div
             className="flex items-center cursor-pointer group"
             onClick={() => navigate('/')}
@@ -193,6 +206,21 @@ const Header = () => {
               Tours
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-cyan-500 group-hover:w-full transition-all duration-300"></span>
             </Link>
+
+            {isAuthenticated && (
+              <Link 
+                to="/loyalty" 
+                className={`px-4 py-2.5 font-medium transition-all relative group flex items-center gap-2 ${
+                  isScrolled 
+                    ? 'text-gray-700 hover:text-cyan-500' 
+                    : 'text-white/90 hover:text-cyan-400'
+                }`}
+              >
+                <Award size={18} />
+                Điểm thưởng
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-cyan-500 group-hover:w-full transition-all duration-300"></span>
+              </Link>
+            )}
 
             <Link 
               to="/bookings" 
@@ -268,6 +296,20 @@ const Header = () => {
             >
               Tours
             </Link>
+            {isAuthenticated && (
+              <Link 
+                to="/loyalty" 
+                className={`px-4 py-3 font-medium rounded-lg transition flex items-center gap-2 ${
+                  isScrolled 
+                    ? 'text-gray-700 hover:bg-gray-100' 
+                    : 'text-white/90 hover:bg-white/10'
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Award size={18} />
+                Điểm thưởng
+              </Link>
+            )}
             <Link 
               to="/bookings" 
               className={`px-4 py-3 font-medium rounded-lg transition flex items-center gap-2 ${
@@ -327,6 +369,18 @@ const Header = () => {
                       Quản trị
                     </Link>
                   )}
+                  <Link
+                    to="/loyalty"
+                    className={`px-4 py-3 font-medium rounded-lg transition flex items-center gap-2 ${
+                      isScrolled 
+                        ? 'text-gray-700 hover:bg-gray-100' 
+                        : 'text-white/90 hover:bg-white/10'
+                    }`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Award size={18} />
+                    Điểm thưởng
+                  </Link>
                   <Link
                     to="/bookings"
                     className={`px-4 py-3 font-medium rounded-lg transition flex items-center gap-2 ${

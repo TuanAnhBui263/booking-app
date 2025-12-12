@@ -1,3 +1,4 @@
+// App.jsx - Updated with Loyalty Profile route
 import './index.css';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -13,6 +14,7 @@ import Profile from './components/pages/Profile';
 import MyTours from './components/pages/MyTours';
 import ChangePassword from './components/pages/ChangePassword';
 import BookingHistoryPage from './components/pages/BookingHistoryPage';
+import LoyaltyProfilePage from './components/pages/LoyaltyProfilePage'; // NEW
 import LoginPage from './components/auth/LoginPage';
 import AdminPage from './components/pages/AdminPage';
 import RegisterPage from './components/auth/RegisterPage';
@@ -84,7 +86,8 @@ const App = () => {
 
             {/* Admin tour detail */}
             <Route path="/admin/tours/:id" element={<TourDetail />} />
-            { }
+            
+            {/* Admin tour departures */}
             <Route
               path="/admin/tours/:tourId/departures"
               element={
@@ -118,8 +121,25 @@ const App = () => {
               </>
             } />
 
+            {/* Loyalty Profile - Protected - NEW */}
+            <Route 
+              path="/loyalty" 
+              element={
+                <ProtectedRoute>
+                  <>
+                    <Header />
+                    <main className="pt-[80px]">
+                      <LoyaltyProfilePage />
+                    </main>
+                    <Footer />
+                  </>
+                </ProtectedRoute>
+              } 
+            />
+
             {/* Login */}
             <Route path="/login" element={<LoginPage />} />
+            
             {/* Register */}
             <Route path="/register" element={<RegisterPage />} />
 

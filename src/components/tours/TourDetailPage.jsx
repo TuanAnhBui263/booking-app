@@ -179,8 +179,22 @@ const TourDetailPage = () => {
     try {
       setLoyaltyLoading(true);
       const response = await loyaltyService.getMyLoyaltyInfo();
+      console.log('Full loyalty response:', response);
+      
       if (response?.success && response?.data) {
-        setLoyaltyInfo(response.data);
+        const loyaltyData = {
+          currentPoints: response.data.CurrentPoints || 0,
+          currentTierName: response.data.CurrentTierName || 'Thành viên',
+          currentTier: response.data.CurrentTier || 0,
+          discountPercentage: response.data.DiscountPercentage || 0,
+          nextTier: response.data.NextTier || null,
+          nextTierName: response.data.NextTierName || null,
+          pointsToNextTier: response.data.PointsToNextTier || 0,
+          lifetimePoints: response.data.CurrentPoints || 0,
+          fullName: response.data.FullName || ''
+        };
+        console.log('Parsed loyalty data:', loyaltyData);
+        setLoyaltyInfo(loyaltyData);
       }
     } catch (err) {
       console.error('Error loading loyalty info:', err);
@@ -233,7 +247,7 @@ const TourDetailPage = () => {
 
   const handlePointsInputChange = (value) => {
     const points = parseInt(value) || 0;
-    const currentPoints = loyaltyInfo?.currentPoints ?? 0;
+    const currentPoints = loyaltyInfo?.currentPoints || 0;
 
     if (points > currentPoints) {
       setLoyaltyError(`Bạn chỉ có ${currentPoints.toLocaleString()} điểm`);
@@ -248,7 +262,7 @@ const TourDetailPage = () => {
     if (!redeemPreview?.maxRedeemablePoints) return;
     const maxPointsStr = redeemPreview.maxRedeemablePoints.replace(/[^\d]/g, '');
     const maxPoints = parseInt(maxPointsStr) || 0;
-    const currentPoints = loyaltyInfo?.currentPoints ?? 0;
+    const currentPoints = loyaltyInfo?.currentPoints || 0;
     setPointsToRedeem(Math.min(maxPoints, currentPoints));
   };
 
@@ -288,6 +302,32 @@ const TourDetailPage = () => {
       return;
     }
 
+    const baseAmount = getBaseAmount();
+    const finalAmount = calculateFinalAmount();
+    const loyaltyData = {
+      memberDiscount: memberDiscount ? {
+        tierName: memberDiscount.memberTier || loyaltyInfo?.currentTierName || '',
+        discountPercentage: memberDiscount.discountPercentage || 0,
+        discountAmount: parseFloat(memberDiscount.discountAmount?.replace(/[^\d]/g, '') || '0'),
+        originalAmount: parseFloat(memberDiscount.originalAmount?.replace(/[^\d]/g, '') || '0')
+      } : null,
+  
+      pointsRedemption: redeemPreview && pointsToRedeem > 0 ? {
+        pointsToRedeem: parseInt(redeemPreview.pointsToRedeem || '0'),
+        pointsDiscount: parseFloat(redeemPreview.pointsDiscount?.replace(/[^\d]/g, '') || '0'),
+        remainingPoints: parseInt(redeemPreview.remainingPoints || '0'),
+        pointsToEarn: parseInt(redeemPreview.pointsToEarn || '0'),
+        maxRedeemablePoints: parseInt(redeemPreview.maxRedeemablePoints?.replace(/[^\d]/g, '') || '0'),
+        maxRedeemableValue: parseFloat(redeemPreview.maxRedeemableValue?.replace(/[^\d]/g, '') || '0')
+      } : null,
+  
+      currentLoyaltyInfo: loyaltyInfo ? {
+        currentPoints: loyaltyInfo.currentPoints || 0,
+        currentTierName: loyaltyInfo.currentTierName || '',
+        lifetimePoints: loyaltyInfo.lifetimePoints || 0
+      } : null
+    };
+
     if (!tour) return;
 
     const tourIdValue = tour.id || tour.Id;
@@ -313,10 +353,9 @@ const TourDetailPage = () => {
           guests: numberOfGuests,
           departureId: departureId,
           availableSlots: availableSlots,
-          memberDiscount,
-          pointsToRedeem,
-          redeemPreview,
-          finalAmount: calculateFinalAmount()
+          baseAmount: baseAmount,
+          finalAmount: finalAmount,
+          loyaltyData: loyaltyData
         }
       }
     });
@@ -389,7 +428,7 @@ const TourDetailPage = () => {
   const tourIncludes = tour.includes || tour.Includes || [];
   const tourExcludes = tour.excludes || tour.Excludes || [];
 
-  const currentPoints = loyaltyInfo?.currentPoints ?? 0;
+  const currentPoints = loyaltyInfo?.currentPoints || 0;
 
   return (
     <div className="min-h-screen bg-white">
@@ -478,7 +517,7 @@ const TourDetailPage = () => {
               </div>
             </div>
 
-            {/* Loyalty Section - Chỉ hiện khi đã đăng nhập */}
+            {/* Loyalty Section */}
             {isAuthenticated && selectedDeparture && loyaltyInfo && (
               <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl shadow-lg p-6 mb-8 border-2 border-cyan-200">
                 <div className="flex items-center gap-3 mb-4">
@@ -488,8 +527,7 @@ const TourDetailPage = () => {
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">Ưu đãi thành viên</h2>
                     <p className="text-sm text-gray-600">
-                      Hạng {loyaltyInfo.currentTierName || 'Thành viên'} -{' '}
-                      {currentPoints.toLocaleString()} điểm
+                      Hạng {loyaltyInfo.currentTierName} - {currentPoints.toLocaleString()} điểm
                     </p>
                   </div>
                 </div>

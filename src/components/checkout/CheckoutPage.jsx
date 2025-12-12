@@ -37,7 +37,6 @@ const CheckoutPage = () => {
     guests: []
   });
 
-
   const [guides, setGuides] = useState([]);
   const [selectedGuideId, setSelectedGuideId] = useState(null);
   const [guidesLoading, setGuidesLoading] = useState(false);
@@ -60,19 +59,23 @@ const CheckoutPage = () => {
 
     if (location.state?.tourData) {
       const stateData = location.state.tourData;
+      
+      // Set tour data với tất cả thông tin bao gồm loyalty
+      setTourData(stateData);
+      
       if (stateData.date) {
         setBookingData(prev => ({ ...prev, tourDate: stateData.date }));
       }
       if (stateData.guests) {
         setBookingData(prev => ({ ...prev, numberOfGuests: stateData.guests }));
       }
-    }
-
-    if (tourId) fetchTourData(tourId);
-    else if (location.state?.tourData) {
-      setTourData(location.state.tourData);
+      
       setLoading(false);
-    } else navigate('/tours');
+    } else if (tourId) {
+      fetchTourData(tourId);
+    } else {
+      navigate('/tours');
+    }
 
     if (user) {
       const userName = user.name || user.fullName || user.Name || user.FullName || '';
@@ -87,7 +90,6 @@ const CheckoutPage = () => {
     }
   }, [isAuthenticated, location, navigate, user]);
 
- 
   useEffect(() => {
     const tourId = tourData?.id || tourData?.Id;
     if (tourId && bookingData.tourDate) {
@@ -120,7 +122,9 @@ const CheckoutPage = () => {
         setGuides(list);
         const def = list.find(g => g.isDefaultGuide && g.isAvailable);
         if (def) setSelectedGuideId(def.guideId);
-      } else setGuidesError(res?.message || 'Không thể tải hướng dẫn viên');
+      } else {
+        setGuidesError(res?.message || 'Không thể tải hướng dẫn viên');
+      }
     } catch (e) {
       console.error(e);
       setGuidesError('Không thể tải danh sách hướng dẫn viên.');
@@ -141,75 +145,174 @@ const CheckoutPage = () => {
   };
 
   const handlePayment = async () => {
-    if (!validateForm()) return alert('Vui lòng điền đủ thông tin.');
-    if (!agreed) return alert('Vui lòng đồng ý điều khoản.');
-    if (!tourData) return alert('Không tìm thấy tour.');
-
+    if (!validateForm()) {
+      alert('Vui lòng điền đủ thông tin.');
+      return;
+    }
+    
+    if (!agreed) {
+      alert('Vui lòng đồng ý điều khoản.');
+      return;
+    }
+    
+    if (!tourData) {
+      alert('Không tìm thấy tour.');
+      return;
+    }
+  
     setIsProcessing(true);
+    
     try {
       const tourId = tourData.id || tourData.Id;
-      const bookingReq = {
-        tourId,
+      const loyaltyData = tourData.loyaltyData || {};
+      
+      console.log('Tour Data:', tourData);
+      console.log('Loyalty Data:', loyaltyData);
+      
+      // ============ PRICING CALCULATION ============
+      // Lấy giá gốc từ state (đã bao gồm service fee)
+      const originalAmount = tourData.baseAmount; // Frontend đã tính sẵn
+      const totalAmount = tourData.finalAmount;   // Frontend đã tính sẵn
+      
+      // Member Discount
+      const memberDiscount = loyaltyData.memberDiscount?.discountAmount || 0;
+      const memberTier = loyaltyData.memberDiscount?.tierName || null;
+      const memberDiscountPercentage = loyaltyData.memberDiscount?.discountPercentage || 0;
+      
+      // Points Redemption
+      const pointsRedeemed = loyaltyData.pointsRedemption?.pointsToRedeem || 0;
+      const pointsDiscount = loyaltyData.pointsRedemption?.pointsDiscount || 0;
+      const pointsToEarn = loyaltyData.pointsRedemption?.pointsToEarn || 0;
+      
+      // ============ LOG KIỂM TRA ============
+      console.log('=== PRICING BREAKDOWN ===');
+      console.log('Original Amount:', originalAmount);
+      console.log('Member Discount:', memberDiscount);
+      console.log('Points Discount:', pointsDiscount);
+      console.log('Final Amount:', totalAmount);
+      console.log('========================');
+      
+      // Chuẩn bị request body
+      const bookingRequest = {
+        tourId: tourId,
+        tourDepartureId: tourData.departureId,
         tourDate: bookingData.tourDate,
         numberOfGuests: bookingData.numberOfGuests,
         guideId: selectedGuideId,
+        
+        // Customer info
         customerName: `${formData.firstName} ${formData.lastName}`.trim(),
         customerEmail: formData.email,
         customerPhone: formData.phone,
         specialRequests: formData.specialRequests || null,
+        
+        // Payment
         paymentMethod: selectedMethod === 'vnpay' ? 'VNPay' :
                        selectedMethod === 'cash' ? 'Cash' : 'VNPay',
+        
+        // ============ PRICING DETAILS (CRITICAL) ============
+        originalAmount: originalAmount,           // Giá gốc + phí dịch vụ
+        totalAmount: totalAmount,                 // Tổng sau khi trừ tất cả
+        
+        // Member Discount
+        memberDiscount: memberDiscount,           // Số tiền giảm (VND)
+        memberTier: memberTier,                   // Hạng thành viên
+        memberDiscountPercentage: memberDiscountPercentage, // % giảm
+        
+        // Points Redemption
+        pointsRedeemed: pointsRedeemed,           // Số điểm đã dùng
+        pointsDiscount: pointsDiscount,           // Số tiền giảm từ điểm (VND)
+        pointsToEarn: pointsToEarn,               // Điểm sẽ nhận sau tour
+        // ====================================================
+        
+        // Guests
         guests: bookingData.guests || []
       };
-
-      const bookingRes = await bookingService.createBooking(bookingReq);
-      const success = bookingRes.success || bookingRes.Success;
-      const booking = bookingRes.data || bookingRes.Data;
-      const bookingId = booking?.id || booking?.Id;
-
+  
+      console.log('Booking Request Payload:', JSON.stringify(bookingRequest, null, 2));
+  
+      // Gọi API tạo booking
+      const bookingResponse = await bookingService.createBooking(bookingRequest);
+      
+      const success = bookingResponse.success || bookingResponse.Success;
+      const responseData = bookingResponse.data || bookingResponse.Data;
+      const bookingId = responseData?.id || responseData?.Id;
+  
+      console.log('Booking Response:', bookingResponse);
+  
       if (success && bookingId) {
+        // Nếu thanh toán VNPay
         if (selectedMethod === 'vnpay') {
-          const payRes = await paymentService.createPaymentUrl(bookingId);
-          const ok = payRes.success || payRes.Success;
-          const url = payRes.data || payRes.Data;
-          if (ok && url) window.location.href = url;
-          else alert(payRes.message || 'Không thể tạo link thanh toán.');
-        } else {
-          navigate('/bookings', { state: { message: 'Đặt tour thành công!' } });
+          console.log('Creating VNPay payment for booking ID:', bookingId);
+          const paymentResponse = await paymentService.createPaymentUrl(bookingId);
+          
+          const paymentSuccess = paymentResponse.success || paymentResponse.Success;
+          const paymentUrl = paymentResponse.data || paymentResponse.Data;
+          
+          console.log('VNPay Response:', paymentResponse);
+          
+          if (paymentSuccess && paymentUrl) {
+            console.log('Redirecting to VNPay:', paymentUrl);
+            window.location.href = paymentUrl;
+          } else {
+            alert(paymentResponse.message || 'Không thể tạo link thanh toán VNPay.');
+          }
+        } 
+        // Nếu thanh toán tiền mặt
+        else {
+          navigate('/bookings', {
+            state: {
+              message: 'Đặt tour thành công! Vui lòng thanh toán tiền mặt khi checkin.'
+            }
+          });
         }
       } else {
-        alert(bookingRes.message || 'Không thể tạo đặt tour.');
+        alert(bookingResponse.message || 'Không thể tạo đặt tour. Vui lòng thử lại.');
       }
-    } catch (err) {
-      console.error('Payment error:', err);
-      alert(err.message || 'Lỗi khi thanh toán.');
+      
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert(error.message || 'Đã xảy ra lỗi khi xử lý thanh toán. Vui lòng thử lại.');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <Loader className="animate-spin text-cyan-500" size={48} />
-    </div>
-  );
-
-  if (!tourData) return (
-    <div className="min-h-screen flex items-center justify-center text-gray-600">
-      <div className="text-center">
-        <p className="mb-4">Không tìm thấy thông tin tour.</p>
-        <button onClick={() => navigate('/tours')} className="px-6 py-3 bg-cyan-500 text-white rounded-lg">Quay lại</button>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader className="animate-spin text-cyan-500" size={48} />
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (!tourData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-600">
+        <div className="text-center">
+          <p className="mb-4">Không tìm thấy thông tin tour.</p>
+          <button 
+            onClick={() => navigate('/tours')} 
+            className="px-6 py-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600"
+          >
+            Quay lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <button onClick={() => navigate('/tours')} className="flex items-center gap-2 text-gray-600 hover:text-orange-500">
-            <ArrowLeft size={20} /> <span>Quay lại</span>
+          <button 
+            onClick={() => navigate(-1)} 
+            className="flex items-center gap-2 text-gray-600 hover:text-cyan-600 transition-colors"
+          >
+            <ArrowLeft size={20} />
+            <span>Quay lại</span>
           </button>
           <h1 className="text-2xl font-bold">Thanh toán</h1>
           <div className="w-20" />
@@ -224,53 +327,69 @@ const CheckoutPage = () => {
             <h2 className="text-2xl font-bold mb-6">Thông tin đặt tour</h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-  <label className="font-semibold text-gray-700 mb-2 block">
-    Ngày khởi hành *
-    {bookingData.tourDate && (
-      <span className="text-sm font-normal text-gray-500 ml-2">
-        (Đã chọn từ trang chi tiết)
-      </span>
-    )}
-  </label>
-  <div className="relative">
-    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
-    <input
-      type="date"readOnly
-      value={bookingData.tourDate}
-      min={new Date().toISOString().split('T')[0]}
-      onChange={(e) => {
-        setBookingData(p => ({ ...p, tourDate: e.target.value }));
-      }}
-      className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 bg-white"
-      required
-    />
-  </div>
-  {bookingData.tourDate && (
-    <p className="text-sm text-gray-600 mt-2 flex items-center gap-2">
-      <Calendar size={16} className="text-cyan-600" />
-      {new Date(bookingData.tourDate).toLocaleDateString('vi-VN', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })}
-    </p>
-  )}
-</div>
+                <label className="font-semibold text-gray-700 mb-2 block">
+                  Ngày khởi hành *
+                  {bookingData.tourDate && (
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      (Đã chọn từ trang chi tiết)
+                    </span>
+                  )}
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
+                  <input
+                    type="date"
+                    readOnly
+                    value={bookingData.tourDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 bg-gray-50"
+                    required
+                  />
+                </div>
+                {bookingData.tourDate && (
+                  <p className="text-sm text-gray-600 mt-2 flex items-center gap-2">
+                    <Calendar size={16} className="text-cyan-600" />
+                    {new Date(bookingData.tourDate).toLocaleDateString('vi-VN', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                )}
+              </div>
 
               <div>
-                <label className="font-semibold text-gray-700 mb-2 block">Số lượng khách *</label>
+                <label className="font-semibold text-gray-700 mb-2 block">
+                  Số lượng khách *
+                </label>
                 <div className="flex items-center gap-4">
                   <Users className="text-gray-400" size={20}/>
-                  <button onClick={() => setBookingData(p => ({ ...p, numberOfGuests: Math.max(1, p.numberOfGuests - 1) }))} className="w-10 h-10 rounded bg-gray-100">-</button>
+                  <button 
+                    onClick={() => setBookingData(p => ({ 
+                      ...p, 
+                      numberOfGuests: Math.max(1, p.numberOfGuests - 1) 
+                    }))} 
+                    className="w-10 h-10 rounded bg-gray-100 hover:bg-gray-200 font-bold"
+                  >
+                    -
+                  </button>
                   <span className="font-bold text-lg">{bookingData.numberOfGuests}</span>
-                  <button onClick={() => setBookingData(p => ({ ...p, numberOfGuests: Math.min(20, p.numberOfGuests + 1) }))} className="w-10 h-10 rounded bg-gray-100">+</button>
+                  <button 
+                    onClick={() => setBookingData(p => ({ 
+                      ...p, 
+                      numberOfGuests: Math.min(20, p.numberOfGuests + 1) 
+                    }))} 
+                    className="w-10 h-10 rounded bg-gray-100 hover:bg-gray-200 font-bold"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/*  Guide Selector  */}
+          {/* Guide Selector */}
           <GuideSelectorCheckout
             guides={guides}
             selectedGuideId={selectedGuideId}
@@ -288,12 +407,15 @@ const CheckoutPage = () => {
             onClick={handlePayment}
             disabled={isProcessing || !agreed}
             className={`w-full py-4 mt-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition ${
-              isProcessing || !agreed ? 'bg-gray-300 text-gray-500' : 'bg-orange-500 text-white hover:bg-orange-600'
+              isProcessing || !agreed 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:shadow-lg'
             }`}
           >
             {isProcessing ? (
               <>
-                <Loader className="animate-spin" size={20}/> Đang xử lý...
+                <Loader className="animate-spin" size={20}/> 
+                Đang xử lý...
               </>
             ) : (
               <>
@@ -304,16 +426,21 @@ const CheckoutPage = () => {
           </button>
         </div>
 
+        {/* Order Summary - TRUYỀN ĐẦY ĐỦ LOYALTY DATA */}
         <OrderSummary
           tourData={{
             ...tourData,
-            title: tourData.name || tourData.Name || 'Tour',
-            image: tourData.imageUrl || tourData.PrimaryImageUrl || '',
+            title: tourData.name || tourData.Name || tourData.title || 'Tour',
+            image: tourData.image || tourData.imageUrl || tourData.PrimaryImageUrl || '',
             price: tourData.price || tourData.Price || 0,
             date: bookingData.tourDate,
             guests: bookingData.numberOfGuests,
-            total: (tourData.price || tourData.Price || 0) * bookingData.numberOfGuests,
-            serviceFee: Math.round((tourData.price || tourData.Price || 0) * bookingData.numberOfGuests * 0.1)
+            location: tourData.location || tourData.Location || '',
+            serviceFee: Math.round((tourData.price || tourData.Price || 0) * bookingData.numberOfGuests * 0.1),
+            
+            loyaltyData: tourData.loyaltyData || {},
+            baseAmount: tourData.baseAmount,
+            finalAmount: tourData.finalAmount
           }}
         />
       </div>
