@@ -517,27 +517,7 @@ const TourListPage = () => {
         </div>
       </div>
 
-      {/* Difficulty */}
-      <div className="mb-6 pb-6 border-b border-gray-100">
-        <h3 className="font-semibold mb-4 flex items-center gap-2 text-gray-900">
-          <Mountain size={18} className="text-cyan-600" />
-          Mức độ khó
-        </h3>
-        <div className="space-y-3">
-          {['Dễ', 'Trung bình', 'Thử thách', 'Chuyên nghiệp'].map(level => (
-            <label key={level} className="flex items-center gap-3 cursor-pointer group">
-              <input 
-                type="checkbox" 
-                className="accent-cyan-600 w-4 h-4 rounded"
-                checked={filters.difficulty.includes(level)}
-                onChange={() => handleFilterChange('difficulty', level)}
-              />
-              <span className="text-gray-700 group-hover:text-cyan-600 transition-colors">{level}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
+     
       {/* Rating */}
       <div className="mb-6">
         <h3 className="font-semibold mb-4 flex items-center gap-2 text-gray-900">
