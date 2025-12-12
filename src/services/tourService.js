@@ -3,12 +3,16 @@ import { apiRequest } from './api';
 export const tourService = {
   // Get all tours with pagination
   getAllTours: async (pageNumber = 1, pageSize = 10) => {
-    return await apiRequest(`/Tours?pageNumber=${pageNumber}&pageSize=${pageSize}`);
+    return await apiRequest(`/Tours?pageNumber=${pageNumber}&pageSize=${pageSize}&includeAllStatuses=true`);
   },
 
   // Search and filter tours
   searchTours: async (searchParams) => {
     const queryParams = new URLSearchParams();
+    
+    // ✅ THÊM includeAllStatuses mặc định cho admin
+    queryParams.append('includeAllStatuses', 'true');
+    
     Object.keys(searchParams).forEach(key => {
       if (searchParams[key] !== null && searchParams[key] !== undefined && searchParams[key] !== '') {
         if (Array.isArray(searchParams[key])) {

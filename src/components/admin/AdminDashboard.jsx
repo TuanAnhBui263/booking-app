@@ -117,6 +117,7 @@ const AdminDashboard = () => {
   });
   const [recentBookings, setRecentBookings] = useState([]);
   const [topTours, setTopTours] = useState([]);
+  const [normalizedBookings, setNormalizedBookings] = useState([]); // Add this
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -131,7 +132,7 @@ const AdminDashboard = () => {
     const tourRevenue = {};
     
     bookings.forEach(booking => {
-      const tourId = booking.tourId || booking.TourId;
+      const tourId = booking.tourId || booking.TourId || 'unknown';
       const tourName = booking.tourName || booking.TourName || 'Unknown Tour';
       const amount = booking.amount || 0;
       const paymentStatus = booking.paymentStatus || booking.PaymentStatus;
@@ -199,7 +200,7 @@ const AdminDashboard = () => {
         numberOfGuests: booking.numberOfGuests || booking.NumberOfGuests || 0
       }));
 
-      // Calculate revenue from paid bookings only
+      // Tính doanh thu từ các booking đã thanh toán
       const totalRevenue = normalizedBookings
         .filter(booking => booking.paymentStatus === 'Paid')
         .reduce((sum, booking) => sum + (booking.amount || 0), 0);
@@ -251,7 +252,8 @@ const AdminDashboard = () => {
       const toursRanked = calculateTopTours(normalizedBookings);
 
       setRecentBookings(sortedBookings);
-      setTopTours(toursRanked.slice(0, 5)); // Top 5 tours
+      setNormalizedBookings(normalizedBookings);
+      setTopTours(toursRanked.slice(0, 3)); // Top 3 tours
       setStats({
         totalRevenue,
         totalBookings,
@@ -454,10 +456,10 @@ const AdminDashboard = () => {
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                     <Trophy size={24} className="text-yellow-500" />
-                    Top Tours Theo Doanh Thu
+                    Top 3 Tours Theo Doanh Thu
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    Xếp hạng {topTours.length} tour có doanh thu cao nhất
+                    3 tour có doanh thu cao nhất
                   </p>
                 </div>
               </div>
@@ -467,7 +469,6 @@ const AdminDashboard = () => {
               <div className="space-y-4">
                 {topTours.map((tour, index) => {
                   const isTop = index === 0;
-                  const isBottom = index === topTours.length - 1;
                   
                   return (
                     <div
@@ -475,33 +476,40 @@ const AdminDashboard = () => {
                       className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
                         isTop
                           ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300'
-                          : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                          : index === 1
+                          ? 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-300'
+                          : 'bg-gradient-to-r from-orange-50 to-red-50 border-orange-300'
                       }`}
                     >
                       {/* Rank Badge */}
                       <div
-                        className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg ${
+                        className={`flex-shrink-0 w-16 h-16 rounded-xl flex items-center justify-center font-bold text-2xl ${
                           isTop
-                            ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white'
+                            ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg'
                             : index === 1
-                            ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white'
-                            : index === 2
-                            ? 'bg-gradient-to-br from-orange-300 to-orange-400 text-white'
-                            : 'bg-gray-200 text-gray-600'
+                            ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white shadow-md'
+                            : 'bg-gradient-to-br from-orange-300 to-orange-400 text-white shadow-md'
                         }`}
                       >
-                        {isTop ? <Trophy size={24} /> : `#${index + 1}`}
+                        {isTop ? '🥇' : index === 1 ? '🥈' : '🥉'}
                       </div>
 
                       {/* Tour Info */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-gray-900 mb-1 truncate">
-                          {tour.tourName}
-                        </h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-bold text-gray-900 text-lg truncate">
+                            {tour.tourName}
+                          </h3>
+                          {isTop && (
+                            <span className="flex-shrink-0 px-2 py-1 bg-yellow-500 text-white text-xs font-bold rounded-full">
+                              TOP 1
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-1">
                             <ShoppingBag size={14} />
-                            <span>{tour.bookingCount} bookings</span>
+                            <span className="font-semibold">{tour.bookingCount} bookings</span>
                           </div>
                         </div>
                       </div>
@@ -515,14 +523,9 @@ const AdminDashboard = () => {
                         >
                           {formatCurrency(tour.revenue)}
                         </p>
-                        {isTop && (
-                          <p className="text-xs text-orange-600 font-semibold mt-1">
-                            🏆 Cao nhất
-                          </p>
-                        )}
-                        {isBottom && topTours.length > 2 && (
-                          <p className="text-xs text-gray-500 mt-1">Thấp nhất</p>
-                        )}
+                        <p className="text-xs text-gray-500 mt-1 font-medium">
+                          Doanh thu
+                        </p>
                       </div>
                     </div>
                   );
