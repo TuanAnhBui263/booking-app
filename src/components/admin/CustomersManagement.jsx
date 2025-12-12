@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { userService } from '../../services/userService';
 import { 
   Plus, 
   UsersIcon, 
   TrendingUp, 
-  WalletCards, 
   Search, 
   Mail, 
   Phone, 
@@ -13,26 +11,36 @@ import {
   X,
   Loader,
   CheckCircle,
-  AlertCircle,
+  Award,
+  Star,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  History,
+  ChevronLeft,
+  ChevronRight,
+  Crown,
+  DollarSign,
   Calendar,
-  Shield,
-  User
+  Activity
 } from 'lucide-react';
 
+import { userService } from '../../services/userService';
+import { loyaltyService } from '../../services/loyaltyService';
+
 const UserRole = {
-  Customer: 0,  
-  Guide: 1,    
-  Staff: 2,     
-  Manager: 3,   
-  Admin: 4      
+  Customer: 0,
+  Guide: 1,
+  Staff: 2,
+  Manager: 3,
+  Admin: 4
 };
 
 const getRoleFromRolesArray = (roles) => {
   if (!roles || !Array.isArray(roles) || roles.length === 0) {
-    return UserRole.Customer; 
+    return UserRole.Customer;
   }
   
-  const roleString = roles[0]; 
+  const roleString = roles[0];
   const roleMap = {
     'Customer': UserRole.Customer,
     'Guide': UserRole.Guide,
@@ -60,37 +68,60 @@ const getRoleBadge = (role) => {
   return badges[role] || badges[0];
 };
 
+const getTierBadge = (tier) => {
+  const badges = {
+    'Bronze': { color: 'bg-orange-100 text-orange-800 border-orange-300', icon: '🥉' },
+    'Silver': { color: 'bg-gray-100 text-gray-800 border-gray-300', icon: '🥈' },
+    'Gold': { color: 'bg-yellow-100 text-yellow-800 border-yellow-300', icon: '🥇' },
+    'Platinum': { color: 'bg-purple-100 text-purple-800 border-purple-300', icon: '💎' }
+  };
+  return badges[tier] || badges['Bronze'];
+};
+
 const CustomersManagement = () => {
-  // State
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   
-  // Filter state
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [tierFilter, setTierFilter] = useState('');
 
-  // Statistics
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
-    avgSpending: 0
+    totalPoints: 0,
+    avgPoints: 0,
+    tierDistribution: {
+      Bronze: 0,
+      Silver: 0,
+      Gold: 0,
+      Platinum: 0
+    }
   });
 
-  // Form state - DEFAULT TO CUSTOMER (0)
+  const [loyaltyInfo, setLoyaltyInfo] = useState(null);
+  const [pointsHistory, setPointsHistory] = useState([]);
+  const [pointsHistoryPage, setPointsHistoryPage] = useState(1);
+  const [pointsHistoryPages, setPointsHistoryPages] = useState(1);
+  const [showPointsAdjustment, setShowPointsAdjustment] = useState(false);
+  const [pointsAdjustment, setPointsAdjustment] = useState({ points: '', reason: '' });
+  const [tiers, setTiers] = useState([]);
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phoneNumber: '',
     password: '',
-    role: UserRole.Customer, // 0
+    role: UserRole.Customer,
     isActive: true,
     address: '',
     dateOfBirth: '',
@@ -100,60 +131,58 @@ const CustomersManagement = () => {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    fetchUsers();
-  }, [currentPage, roleFilter, statusFilter]);
+    fetchUsersWithLoyalty();
+  }, [currentPage, roleFilter, statusFilter, tierFilter]);
 
-  const fetchUsers = async () => {
+  useEffect(() => {
+    fetchTiers();
+  }, []);
+
+  const fetchUsersWithLoyalty = async () => {
     try {
       setLoading(true);
       
-      // Convert role number to role string for API
-      let roleParam = null;
-      if (roleFilter !== '') {
-        roleParam = getRoleLabel(parseInt(roleFilter));
-      }
-      
-      const response = await userService.getAllUsers(
-        currentPage, 
-        pageSize, 
-        roleParam, 
-        statusFilter !== '' ? (statusFilter === 'true') : null
+      // Fetch users with loyalty info from admin endpoint
+      const response = await loyaltyService.getAdminLoyaltyOverview(
+        currentPage,
+        pageSize,
+        searchTerm || null,
+        tierFilter || null
       );
       
-      console.log('Users response:', response);
+      console.log('Admin loyalty overview:', response);
       
-      let usersData = [];
-      let pages = 1;
-      let total = 0;
+      // Extract data from response
+      const usersData = response.data || response.Data || [];
+      const statistics = response.statistics || response.Statistics || {};
+      const totalCount = response.totalCount || response.TotalCount || 0;
+      const page = response.page || response.Page || 1;
+      const size = response.pageSize || response.PageSize || pageSize;
       
-      if (response.Items || response.items) {
-        usersData = response.Items || response.items;
-        pages = response.TotalPages || response.totalPages || 1;
-        total = response.TotalCount || response.totalCount || usersData.length;
-      } else if (response.Data || response.data) {
-        usersData = response.Data || response.data;
-        pages = response.TotalPages || response.totalPages || 1;
-        total = response.TotalCount || response.totalCount || usersData.length;
-      } else if (Array.isArray(response)) {
-        usersData = response;
-        pages = 1;
-        total = usersData.length;
-      }
+      // Calculate total pages
+      const pages = Math.ceil(totalCount / size);
       
       setUsers(usersData);
       setTotalPages(pages);
-      setTotalUsers(total);
+      setTotalUsers(totalCount);
+      setCurrentPage(page);
       
-      // Calculate statistics
-      const activeUsers = usersData.filter(u => (u.IsActive !== undefined ? u.IsActive : u.isActive));
+      // Set statistics
       setStats({
-        total: total,
-        active: activeUsers.length,
-        avgSpending: 0
+        total: statistics.totalUsers || statistics.TotalUsers || totalCount,
+        active: statistics.activeUsers || statistics.ActiveUsers || 0,
+        totalPoints: statistics.totalPointsInSystem || statistics.TotalPointsInSystem || 0,
+        avgPoints: statistics.averagePointsPerUser || statistics.AveragePointsPerUser || 0,
+        tierDistribution: {
+          Bronze: statistics.bronzeCount || statistics.BronzeCount || 0,
+          Silver: statistics.silverCount || statistics.SilverCount || 0,
+          Gold: statistics.goldCount || statistics.GoldCount || 0,
+          Platinum: statistics.platinumCount || statistics.PlatinumCount || 0
+        }
       });
       
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error fetching users with loyalty:', error);
       setUsers([]);
       setTotalPages(1);
       setTotalUsers(0);
@@ -162,38 +191,167 @@ const CustomersManagement = () => {
     }
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    
-    if (!searchTerm.trim()) {
-      fetchUsers();
-      return;
+  const fetchTiers = async () => {
+    try {
+      const response = await loyaltyService.getMemberTiers();
+      console.log('Tiers response:', response);
+      
+      const tiersData = response.Data || response.data || response || [];
+      setTiers(tiersData);
+    } catch (error) {
+      console.error('Error fetching tiers:', error);
+      setTiers([
+        {
+          name: 'Bronze',
+          minSpending: 0,
+          discountPercentage: 0.05,
+          benefits: ['5% discount', 'Basic support']
+        },
+        {
+          name: 'Silver',
+          minSpending: 5000000,
+          discountPercentage: 0.10,
+          benefits: ['10% discount', 'Priority support']
+        },
+        {
+          name: 'Gold',
+          minSpending: 10000000,
+          discountPercentage: 0.15,
+          benefits: ['15% discount', 'VIP support', 'Free upgrades']
+        },
+        {
+          name: 'Platinum',
+          minSpending: 20000000,
+          discountPercentage: 0.20,
+          benefits: ['20% discount', 'Dedicated manager', 'Premium benefits']
+        }
+      ]);
     }
-    
+  };
+
+  const fetchLoyaltyInfo = async (userId) => {
     try {
       setLoading(true);
-      const user = await userService.getUserByEmail(searchTerm);
       
-      if (user) {
-        setUsers([user]);
-        setTotalPages(1);
-        setTotalUsers(1);
-      } else {
-        setUsers([]);
-        setTotalPages(1);
-        setTotalUsers(0);
-      }
+      // Get detailed loyalty info for specific user
+      const loyalty = await loyaltyService.getAdminUserLoyaltyDetail(userId);
+      console.log('User loyalty detail:', loyalty);
+      
+      const data = loyalty.data || loyalty.Data || loyalty;
+      
+      setLoyaltyInfo({
+        userId: data.userId || data.UserId,
+        fullName: data.fullName || data.FullName,
+        email: data.email || data.Email,
+        phoneNumber: data.phoneNumber || data.PhoneNumber,
+        currentPoints: data.currentPoints || data.CurrentPoints || 0,
+        currentTier: data.currentTierName || data.CurrentTierName || 'Bronze',
+        discountPercentage: data.discountPercentage || data.DiscountPercentage || 0,
+        nextTier: data.nextTierName || data.NextTierName || null,
+        pointsToNextTier: data.pointsToNextTier || data.PointsToNextTier || 0,
+        totalPointsEarned: data.totalPointsEarned || data.TotalPointsEarned || 0,
+        totalPointsRedeemed: data.totalPointsRedeemed || data.TotalPointsRedeemed || 0,
+        totalTransactions: data.totalTransactions || data.TotalTransactions || 0,
+        memberSince: data.memberSince || data.MemberSince || new Date().toISOString(),
+        lastTierUpdateAt: data.lastTierUpdateAt || data.LastTierUpdateAt,
+        lastTransactionAt: data.lastTransactionAt || data.LastTransactionAt
+      });
+      
+      // Get points history
+      await fetchPointsHistory(userId, 1);
+      
     } catch (error) {
-      console.error('Error searching user:', error);
-      setUsers([]);
+      console.error('Error fetching loyalty info:', error);
+      setLoyaltyInfo(null);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchPointsHistory = async (userId, page) => {
+    try {
+      const response = await loyaltyService.getAdminUserPointsHistory(userId, page, 10);
+      console.log('Points history:', response);
+      
+      const historyData = response.data || response.Data || [];
+      const pages = response.totalPages || response.TotalPages || 1;
+      
+      setPointsHistory(historyData);
+      setPointsHistoryPages(pages);
+      setPointsHistoryPage(page);
+    } catch (error) {
+      console.error('Error fetching points history:', error);
+      setPointsHistory([]);
+    }
+  };
+
+  const openLoyaltyModal = async (user) => {
+    setSelectedUser(user);
+    setShowLoyaltyModal(true);
+    const userId = user.userId || user.UserId || user.Id || user.id;
+    await fetchLoyaltyInfo(userId);
+  };
+
+  const closeLoyaltyModal = () => {
+    setShowLoyaltyModal(false);
+    setSelectedUser(null);
+    setLoyaltyInfo(null);
+    setPointsHistory([]);
+    setShowPointsAdjustment(false);
+    setPointsAdjustment({ points: '', reason: '' });
+  };
+
+  const handlePointsAdjustment = async () => {
+    const points = parseInt(pointsAdjustment.points);
+    
+    if (isNaN(points) || points === 0) {
+      alert('Please enter a valid points amount (positive to add, negative to subtract)');
+      return;
+    }
+    
+    if (!pointsAdjustment.reason.trim()) {
+      alert('Please enter a reason for the adjustment');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      const userId = loyaltyInfo.userId;
+      await loyaltyService.adminAdjustPoints(userId, points, pointsAdjustment.reason.trim());
+      
+      alert(points > 0 
+        ? `Successfully added ${points} points` 
+        : `Successfully deducted ${Math.abs(points)} points`
+      );
+      
+      // Refresh loyalty info
+      await fetchLoyaltyInfo(userId);
+      
+      setShowPointsAdjustment(false);
+      setPointsAdjustment({ points: '', reason: '' });
+      
+      // Refresh users list
+      await fetchUsersWithLoyalty();
+      
+    } catch (error) {
+      console.error('Error adjusting points:', error);
+      alert('Failed to adjust points: ' + (error.message || 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    setCurrentPage(1);
+    await fetchUsersWithLoyalty();
+  };
+
   const resetFilters = () => {
     setRoleFilter('');
     setStatusFilter('');
+    setTierFilter('');
     setSearchTerm('');
     setCurrentPage(1);
   };
@@ -206,16 +364,11 @@ const CustomersManagement = () => {
       try {
         setLoading(true);
         
-        const userId = user.Id || user.id;
+        const userId = user.userId || user.UserId || user.Id || user.id;
         const response = await userService.getUserById(userId);
-        
-        console.log('Full user response:', response);
         
         const fullUser = response.Data || response.data || response;
         
-        console.log('Full user data:', fullUser);
-        
-        // Convert Roles array to role number
         const roleValue = fullUser.Roles 
           ? getRoleFromRolesArray(fullUser.Roles)
           : (fullUser.Role !== undefined ? fullUser.Role : fullUser.role);
@@ -239,14 +392,13 @@ const CustomersManagement = () => {
       } finally {
         setLoading(false);
       }
-    } else if (mode === 'create') {
-      // DEFAULT TO CUSTOMER (0)
+    } else {
       setFormData({
         fullName: '',
         email: '',
         phoneNumber: '',
         password: '',
-        role: UserRole.Customer, // 0
+        role: UserRole.Customer,
         isActive: true,
         address: '',
         dateOfBirth: '',
@@ -261,13 +413,12 @@ const CustomersManagement = () => {
   const closeModal = () => {
     setShowModal(false);
     setSelectedUser(null);
-    // DEFAULT TO CUSTOMER (0)
     setFormData({
       fullName: '',
       email: '',
       phoneNumber: '',
       password: '',
-      role: UserRole.Customer, // 0
+      role: UserRole.Customer,
       isActive: true,
       address: '',
       dateOfBirth: '',
@@ -279,108 +430,54 @@ const CustomersManagement = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    // Full Name validation
     if (!formData.fullName || !formData.fullName.trim()) {
       newErrors.fullName = 'Full name is required';
-    } else if (formData.fullName.trim().length < 2) {
-      newErrors.fullName = 'Full name must be at least 2 characters';
     }
     
-    // Email validation
     if (!formData.email || !formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email.trim())) {
-        newErrors.email = 'Please enter a valid email address';
+        newErrors.email = 'Invalid email address';
       }
     }
     
-    // Phone validation
     if (!formData.phoneNumber || !formData.phoneNumber.trim()) {
       newErrors.phoneNumber = 'Phone number is required';
-    } else if (formData.phoneNumber.trim().length < 10) {
-      newErrors.phoneNumber = 'Phone number must be at least 10 digits';
     }
     
-    // Password validation - STRICT RULES
     if (modalMode === 'create') {
       if (!formData.password) {
         newErrors.password = 'Password is required';
       } else {
         const password = formData.password;
-        
         if (password.length < 8) {
           newErrors.password = 'Password must be at least 8 characters';
-        } else if (password.length > 100) {
-          newErrors.password = 'Password must not exceed 100 characters';
         } else if (!/[A-Z]/.test(password)) {
-          newErrors.password = 'Password must contain at least one uppercase letter';
+          newErrors.password = 'Password must contain uppercase letter';
         } else if (!/[a-z]/.test(password)) {
-          newErrors.password = 'Password must contain at least one lowercase letter';
+          newErrors.password = 'Password must contain lowercase letter';
         } else if (!/[0-9]/.test(password)) {
-          newErrors.password = 'Password must contain at least one number';
+          newErrors.password = 'Password must contain number';
         } else if (!/[^A-Za-z0-9]/.test(password)) {
-          newErrors.password = 'Password must contain at least one special character';
+          newErrors.password = 'Password must contain special character';
         }
-      }
-    } else if (formData.password) {
-      const password = formData.password;
-      
-      if (password.length < 8) {
-        newErrors.password = 'Password must be at least 8 characters';
-      } else if (password.length > 100) {
-        newErrors.password = 'Password must not exceed 100 characters';
-      } else if (!/[A-Z]/.test(password)) {
-        newErrors.password = 'Password must contain at least one uppercase letter';
-      } else if (!/[a-z]/.test(password)) {
-        newErrors.password = 'Password must contain at least one lowercase letter';
-      } else if (!/[0-9]/.test(password)) {
-        newErrors.password = 'Password must contain at least one number';
-      } else if (!/[^A-Za-z0-9]/.test(password)) {
-        newErrors.password = 'Password must contain at least one special character';
-      }
-    }
-    
-    // Role validation
-    if (formData.role === undefined || formData.role === null || formData.role === '') {
-      newErrors.role = 'Please select a role';
-    }
-    
-    // Date of birth validation (optional but if provided should be valid)
-    if (formData.dateOfBirth) {
-      const dob = new Date(formData.dateOfBirth);
-      const now = new Date();
-      if (dob >= now) {
-        newErrors.dateOfBirth = 'Date of birth must be in the past';
-      }
-      const age = (now - dob) / (1000 * 60 * 60 * 24 * 365);
-      if (age > 150) {
-        newErrors.dateOfBirth = 'Please enter a valid date of birth';
       }
     }
     
     setErrors(newErrors);
-    
-    if (Object.keys(newErrors).length > 0) {
-      console.log('Validation errors:', newErrors);
-    }
-    
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      console.log('Form validation failed:', errors);
-      return;
-    }
+    if (!validateForm()) return;
     
     try {
       setLoading(true);
       
-      // Prepare data - keeping camelCase, userService will convert
       const submitData = {
         fullName: formData.fullName.trim(),
         email: formData.email.trim(),
@@ -392,10 +489,9 @@ const CustomersManagement = () => {
         nationality: formData.nationality.trim() || null
       };
       
-      // Add password for create, or only if provided for update
       if (modalMode === 'create') {
         if (!formData.password) {
-          alert('Password is required for new users');
+          alert('Password is required');
           setLoading(false);
           return;
         }
@@ -404,39 +500,29 @@ const CustomersManagement = () => {
         submitData.password = formData.password;
       }
       
-      console.log('Submitting form data:', submitData);
-      
-      let result;
       if (modalMode === 'create') {
-        result = await userService.createUser(submitData);
-        console.log('User created successfully:', result);
+        await userService.createUser(submitData);
         alert('User created successfully!');
-      } else if (modalMode === 'edit') {
-        const userId = selectedUser.Id || selectedUser.id;
-        result = await userService.updateUser(userId, submitData);
-        console.log('User updated successfully:', result);
+      } else {
+        const userId = selectedUser.userId || selectedUser.UserId || selectedUser.Id || selectedUser.id;
+        await userService.updateUser(userId, submitData);
         alert('User updated successfully!');
       }
       
       closeModal();
-      await fetchUsers();
+      await fetchUsersWithLoyalty();
       
     } catch (error) {
       console.error('Error saving user:', error);
       
-      // Handle different error formats
-      let errorMessage = 'Failed to save user. Please try again.';
+      let errorMessage = 'Failed to save user';
       
       if (error.response) {
-        const { status, data, validationErrors } = error.response;
+        const { data, validationErrors } = error.response;
         
-        console.log('Error details:', { status, data, validationErrors });
-        
-        // Handle validation errors
         if (validationErrors) {
           const fieldErrors = {};
           Object.keys(validationErrors).forEach(key => {
-            // Convert PascalCase to camelCase for form fields
             const fieldName = key.charAt(0).toLowerCase() + key.slice(1);
             const messages = Array.isArray(validationErrors[key]) 
               ? validationErrors[key] 
@@ -445,36 +531,10 @@ const CustomersManagement = () => {
           });
           
           setErrors(fieldErrors);
-          
-          const errorList = Object.entries(fieldErrors)
-            .map(([field, msg]) => `${field}: ${msg}`)
-            .join('\n');
-          
-          errorMessage = 'Validation errors:\n' + errorList;
+          errorMessage = 'Please check the form for errors';
+        } else if (data?.message || data?.Message) {
+          errorMessage = data.message || data.Message;
         }
-        // Handle specific status codes
-        else if (status === 400 && data) {
-          if (typeof data === 'string') {
-            errorMessage = data;
-          } else if (data.message || data.Message) {
-            errorMessage = data.message || data.Message;
-          } else if (data.title) {
-            errorMessage = data.title;
-          }
-        }
-        else if (status === 409) {
-          errorMessage = 'A user with this email already exists.';
-        }
-        else if (status === 403) {
-          errorMessage = 'You do not have permission to perform this action.';
-        }
-        else if (status === 404) {
-          errorMessage = 'User not found.';
-        }
-      }
-      // Handle network errors
-      else if (error.message) {
-        errorMessage = error.message;
       }
       
       alert(errorMessage);
@@ -483,33 +543,19 @@ const CustomersManagement = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedUser) return;
-    
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete ${selectedUser.FullName || selectedUser.fullName}?`
-    );
-    
-    if (!confirmDelete) return;
+  const handleDelete = async (user) => {
+    const userName = user.fullName || user.FullName || user.userName || user.UserName;
+    if (!window.confirm(`Delete ${userName}?`)) return;
     
     try {
       setLoading(true);
-      const userId = selectedUser.Id || selectedUser.id;
+      const userId = user.userId || user.UserId || user.Id || user.id;
       await userService.deleteUser(userId);
       alert('User deleted successfully!');
-      closeModal();
-      fetchUsers();
+      await fetchUsersWithLoyalty();
     } catch (error) {
       console.error('Error deleting user:', error);
-      
-      let errorMessage = 'Failed to delete user';
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      alert(errorMessage);
+      alert('Failed to delete user');
     } finally {
       setLoading(false);
     }
@@ -518,11 +564,28 @@ const CustomersManagement = () => {
   const handleToggleStatus = async (userId, currentStatus) => {
     try {
       await userService.updateUserStatus(userId, { isActive: !currentStatus });
-      fetchUsers();
+      await fetchUsersWithLoyalty();
     } catch (error) {
       console.error('Error toggling status:', error);
       alert('Failed to update status');
     }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('vi-VN');
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('vi-VN');
   };
 
   return (
@@ -531,57 +594,64 @@ const CustomersManagement = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Customers Management</h1>
-            <p className="text-gray-600 mt-1">Manage customer accounts and information</p>
+            <h1 className="text-3xl font-bold text-gray-900">Customer & Loyalty Management</h1>
+            <p className="text-gray-600 mt-1">Manage customers, loyalty tiers, and reward points</p>
           </div>
           <button
             onClick={() => openModal('create')}
             className="flex items-center gap-2 bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors"
           >
             <Plus size={20} />
-            Add Customer
+            Thêm khách hàng
           </button>
         </div>
 
-        {/* Statistics */}
-        <div className="grid md:grid-cols-3 gap-4 mb-6">
+        {/* Statistics Cards */}
+        <div className="grid md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-3 bg-blue-100 rounded-lg">
                 <UsersIcon className="text-blue-600" size={24} />
               </div>
-              <span className="font-semibold text-gray-700">Total Customers</span>
+              <span className="font-semibold text-gray-700">Tổng khách hàng</span>
             </div>
-            <p className="text-3xl font-bold text-gray-900">{totalUsers.toLocaleString()}</p>
-            <p className="text-sm text-gray-500 mt-2">All registered users</p>
+            <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
           </div>
 
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <Star className="text-purple-600" size={24} />
+              </div>
+              <span className="font-semibold text-gray-700">Tổng điểm</span>
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{stats.totalPoints.toLocaleString()}</p>
+            <p className="text-sm text-gray-500 mt-1">Avg: {Math.round(stats.avgPoints).toLocaleString()}</p>
+          </div>
+
+       
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-3 bg-green-100 rounded-lg">
                 <TrendingUp className="text-green-600" size={24} />
               </div>
-              <span className="font-semibold text-gray-700">Active Customers</span>
+              <span className="font-semibold text-gray-700">Hoạt Động</span>
             </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.active.toLocaleString()}</p>
-            <p className="text-sm text-gray-500 mt-2">
-              {totalUsers > 0 ? ((stats.active / totalUsers) * 100).toFixed(1) : 0}% of total
-            </p>
+            <p className="text-3xl font-bold text-gray-900">{totalUsers}</p>
+            <p className="text-sm text-gray-500 mt-1">Total registered</p>
           </div>
-
-        
         </div>
 
         {/* Main Content */}
         <div className="bg-white rounded-xl shadow-lg p-6">
-          {/* Search and Filters */}
+          {/* Filters */}
           <div className="flex gap-4 mb-6 flex-wrap">
             <form onSubmit={handleSearch} className="flex-1 min-w-[300px] flex gap-2">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input 
                   type="text"
-                  placeholder="Search by email..."
+                  placeholder="Search by name or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -596,30 +666,18 @@ const CustomersManagement = () => {
             </form>
 
             <select
-              value={roleFilter}
+              value={tierFilter}
               onChange={(e) => {
-                setRoleFilter(e.target.value);
+                setTierFilter(e.target.value);
                 setCurrentPage(1);
               }}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
             >
-              <option value="">All Roles</option>
-              {Object.entries(UserRole).map(([key, value]) => (
-                <option key={value} value={value}>{key}</option>
-              ))}
-            </select>
-
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="">All Status</option>
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
+              <option value="">All Tiers</option>
+              <option value="Bronze">🥉 Bronze</option>
+              <option value="Silver">🥈 Silver</option>
+              <option value="Gold">🥇 Gold</option>
+              <option value="Platinum">💎 Platinum</option>
             </select>
 
             <button
@@ -643,17 +701,10 @@ const CustomersManagement = () => {
               <UsersIcon className="mx-auto text-gray-400 mb-4" size={64} />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No customers found</h3>
               <p className="text-gray-600 mb-4">
-                {searchTerm || roleFilter || statusFilter
+                {searchTerm || tierFilter
                   ? 'Try adjusting your search or filters'
                   : 'Start by adding your first customer'}
               </p>
-              <button
-                onClick={() => openModal('create')}
-                className="inline-flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
-              >
-                <Plus size={20} />
-                Add Customer
-              </button>
             </div>
           ) : (
             <>
@@ -661,31 +712,27 @@ const CustomersManagement = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-3 px-4 text-gray-600 font-semibold">Customer</th>
-                      <th className="text-left py-3 px-4 text-gray-600 font-semibold">Contact</th>
-                      <th className="text-left py-3 px-4 text-gray-600 font-semibold">Role</th>
-                      <th className="text-left py-3 px-4 text-gray-600 font-semibold">Status</th>
-                      <th className="text-left py-3 px-4 text-gray-600 font-semibold">Actions</th>
+                      <th className="text-left py-3 px-4 text-gray-600 font-semibold">Họ Và Tên</th>
+                      <th className="text-left py-3 px-4 text-gray-600 font-semibold">Liên Hệ</th>
+                      <th className="text-left py-3 px-4 text-gray-600 font-semibold">Hạng</th>
+                      <th className="text-left py-3 px-4 text-gray-600 font-semibold">Điểm</th>
+                      <th className="text-left py-3 px-4 text-gray-600 font-semibold">Trạng Thái</th>
+                      <th className="text-left py-3 px-4 text-gray-600 font-semibold">Hành Động</th>
                     </tr>
                   </thead>
                   <tbody>
                     {users.map((user) => {
-                      const roleValue = user.Roles 
-                        ? getRoleFromRolesArray(user.Roles)
-                        : (user.Role !== undefined ? user.Role : user.role);
-                      
                       const u = {
-                        id: user.Id || user.id,
-                        fullName: user.FullName || user.fullName,
-                        email: user.Email || user.email,
-                        phoneNumber: user.PhoneNumber || user.phoneNumber,
-                        role: roleValue,
-                        isActive: user.IsActive !== undefined ? user.IsActive : user.isActive,
-                        createdAt: user.CreatedAt || user.createdAt
+                        id: user.userId || user.UserId || user.Id || user.id,
+                        fullName: user.fullName || user.FullName || user.userName || user.UserName,
+                        email: user.email || user.Email,
+                        phoneNumber: user.phoneNumber || user.PhoneNumber,
+                        isActive: user.isActive !== undefined ? user.isActive : user.IsActive,
+                        currentTier: user.currentTierName || user.CurrentTierName || user.currentTier || user.CurrentTier || 'Bronze',
+                        currentPoints: user.currentPoints || user.CurrentPoints || 0
                       };
 
-                      console.log(`User: ${u.fullName}, Roles array: ${user.Roles}, Role value: ${u.role}, Role label: ${getRoleLabel(u.role)}`);
-
+                      const tierBadge = getTierBadge(u.currentTier);
                       const initials = u.fullName
                         ? u.fullName.split(' ').map(n => n[0]).join('').toUpperCase()
                         : '?';
@@ -695,9 +742,7 @@ const CustomersManagement = () => {
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                                <span className="font-semibold text-orange-600">
-                                  {initials}
-                                </span>
+                                <span className="font-semibold text-orange-600">{initials}</span>
                               </div>
                               <span className="font-medium">{u.fullName}</span>
                             </div>
@@ -717,9 +762,16 @@ const CustomersManagement = () => {
                             </div>
                           </td>
                           <td className="py-3 px-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getRoleBadge(u.role).class}`}>
-                              {getRoleBadge(u.role).label}
-                            </span>
+                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border-2 ${tierBadge.color}`}>
+                              <span className="text-lg">{tierBadge.icon}</span>
+                              <span className="font-semibold">{u.currentTier}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <Star className="text-yellow-500" size={16} />
+                              <span className="font-semibold">{u.currentPoints.toLocaleString()}</span>
+                            </div>
                           </td>
                           <td className="py-3 px-4">
                             <button
@@ -730,11 +782,18 @@ const CustomersManagement = () => {
                                   : 'bg-red-100 text-red-800'
                               }`}
                             >
-                              {u.isActive ? 'Active' : 'Inactive'}
+                              {u.isActive ? 'Không Hoạt Động' : 'Hoạt Động'}
                             </button>
                           </td>
                           <td className="py-3 px-4">
                             <div className="flex gap-2">
+                              <button
+                                onClick={() => openLoyaltyModal(user)}
+                                className="p-2 text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
+                                title="Loyalty Details"
+                              >
+                                <Award size={18} />
+                              </button>
                               <button
                                 onClick={() => openModal('edit', user)}
                                 className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
@@ -743,10 +802,7 @@ const CustomersManagement = () => {
                                 <Edit size={18} />
                               </button>
                               <button
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  handleDelete();
-                                }}
+                                onClick={() => handleDelete(user)}
                                 className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                 title="Delete"
                               >
@@ -767,19 +823,17 @@ const CustomersManagement = () => {
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Previous
+                    <ChevronLeft size={20} />
                   </button>
-                  <span className="text-gray-600">
-                    Page {currentPage} of {totalPages}
-                  </span>
+                  <span className="text-gray-600">Page {currentPage} of {totalPages}</span>
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Next
+                    <ChevronRight size={20} />
                   </button>
                 </div>
               )}
@@ -788,7 +842,7 @@ const CustomersManagement = () => {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* User Edit/Create Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -802,7 +856,6 @@ const CustomersManagement = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {/* Full Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Full Name <span className="text-red-500">*</span>
@@ -818,7 +871,6 @@ const CustomersManagement = () => {
                 {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
               </div>
 
-              {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Email <span className="text-red-500">*</span>
@@ -834,7 +886,6 @@ const CustomersManagement = () => {
                 {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
               </div>
 
-              {/* Phone Number */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Phone Number <span className="text-red-500">*</span>
@@ -850,7 +901,6 @@ const CustomersManagement = () => {
                 {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>}
               </div>
 
-              {/* Password */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Password {modalMode === 'create' && <span className="text-red-500">*</span>}
@@ -859,55 +909,14 @@ const CustomersManagement = () => {
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder={modalMode === 'edit' ? 'Leave empty to keep current password' : 'Enter password'}
+                  placeholder={modalMode === 'edit' ? 'Leave empty to keep current' : ''}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 ${
                     errors.password ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
                 {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
-                
-                {/* Password Requirements Hint */}
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs font-semibold text-blue-800 mb-1">Password Requirements:</p>
-                  <ul className="text-xs text-blue-700 space-y-0.5">
-                    <li className="flex items-center gap-1">
-                      <span className={formData.password?.length >= 8 ? 'text-green-600' : ''}>
-                        {formData.password?.length >= 8 ? '✓' : '•'}
-                      </span>
-                      At least 8 characters
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <span className={/[A-Z]/.test(formData.password) ? 'text-green-600' : ''}>
-                        {/[A-Z]/.test(formData.password) ? '✓' : '•'}
-                      </span>
-                      At least one uppercase letter (A-Z)
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <span className={/[a-z]/.test(formData.password) ? 'text-green-600' : ''}>
-                        {/[a-z]/.test(formData.password) ? '✓' : '•'}
-                      </span>
-                      At least one lowercase letter (a-z)
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <span className={/[0-9]/.test(formData.password) ? 'text-green-600' : ''}>
-                        {/[0-9]/.test(formData.password) ? '✓' : '•'}
-                      </span>
-                      At least one number (0-9)
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <span className={/[^A-Za-z0-9]/.test(formData.password) ? 'text-green-600' : ''}>
-                        {/[^A-Za-z0-9]/.test(formData.password) ? '✓' : '•'}
-                      </span>
-                      At least one special character (!@#$%^&*)
-                    </li>
-                  </ul>
-                  <p className="text-xs text-blue-600 mt-2 italic">
-                    Example: MyP@ssw0rd123
-                  </p>
-                </div>
               </div>
 
-              {/* Role */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Role <span className="text-red-500">*</span>
@@ -923,11 +932,8 @@ const CustomersManagement = () => {
                 </select>
               </div>
 
-              {/* Address */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Address
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                 <textarea
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
@@ -936,12 +942,9 @@ const CustomersManagement = () => {
                 />
               </div>
 
-              {/* Date of Birth and Nationality */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date of Birth
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
                   <input
                     type="date"
                     value={formData.dateOfBirth ? formData.dateOfBirth.split('T')[0] : ''}
@@ -951,9 +954,7 @@ const CustomersManagement = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nationality
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
                   <input
                     type="text"
                     value={formData.nationality}
@@ -963,7 +964,6 @@ const CustomersManagement = () => {
                 </div>
               </div>
 
-              {/* Active Status */}
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -977,7 +977,6 @@ const CustomersManagement = () => {
                 </label>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-3 justify-end pt-6 border-t">
                 <button
                   type="button"
@@ -1005,6 +1004,311 @@ const CustomersManagement = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Loyalty Modal */}
+      {showLoyaltyModal && selectedUser && loyaltyInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
+              <div className="flex items-center gap-3">
+                <Award className="text-purple-600" size={28} />
+                <div>
+                  <h2 className="text-xl font-bold">Điểm hạng</h2>
+                  <p className="text-sm text-gray-600">{loyaltyInfo.fullName}</p>
+                </div>
+              </div>
+              <button onClick={closeLoyaltyModal} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {loading && !loyaltyInfo ? (
+                <div className="flex justify-center items-center h-48">
+                  <Loader className="animate-spin text-purple-600" size={40} />
+                </div>
+              ) : (
+                <>
+                  {/* Tier Info */}
+                  <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Hạng</p>
+                        <div className="flex items-center gap-3">
+                          <span className="text-4xl">{getTierBadge(loyaltyInfo.currentTier).icon}</span>
+                          <span className="text-3xl font-bold">{loyaltyInfo.currentTier}</span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-2">
+                          {(loyaltyInfo.discountPercentage * 100).toFixed(0)}% Giảm giá vào Booking
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-600 mb-1">Tham gia từ </p>
+                        <p className="text-lg font-semibold">{formatDate(loyaltyInfo.memberSince)}</p>
+                      </div>
+                    </div>
+
+                    {loyaltyInfo.nextTier && loyaltyInfo.pointsToNextTier > 0 && (
+                      <div className="mt-4">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-gray-600">Đến {loyaltyInfo.nextTier}</span>
+                          <span className="font-semibold">{loyaltyInfo.pointsToNextTier} điểm</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className="bg-gradient-to-r from-purple-500 to-blue-500 h-3 rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(100, (loyaltyInfo.currentPoints / (loyaltyInfo.currentPoints + loyaltyInfo.pointsToNextTier)) * 100)}%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Star className="text-yellow-500" size={24} />
+                        <span className="text-sm text-gray-600">Điểm hiện tại </span>
+                      </div>
+                      <p className="text-2xl font-bold">{loyaltyInfo.currentPoints.toLocaleString()}</p>
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <ArrowUpCircle className="text-green-500" size={24} />
+                        <span className="text-sm text-gray-600">Điểm kiếm được</span>
+                      </div>
+                      <p className="text-2xl font-bold">{loyaltyInfo.totalPointsEarned.toLocaleString()}</p>
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <ArrowDownCircle className="text-red-500" size={24} />
+                        <span className="text-sm text-gray-600">Điểm đổi</span>
+                      </div>
+                      <p className="text-2xl font-bold">{loyaltyInfo.totalPointsRedeemed.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  {/* Additional Stats */}
+                  <div className="grid md:grid-cols-2 gap-4 mb-6">
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Activity className="text-blue-500" size={24} />
+                        <span className="text-sm text-gray-600">Tổng giao dịch</span>
+                      </div>
+                      <p className="text-2xl font-bold">{loyaltyInfo.totalTransactions}</p>
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Calendar className="text-orange-500" size={24} />
+                        <span className="text-sm text-gray-600">Giao dịch gần nhất</span>
+                      </div>
+                      <p className="text-lg font-semibold">{formatDateTime(loyaltyInfo.lastTransactionAt)}</p>
+                    </div>
+                  </div>
+
+                  {/* Points Adjustment Section */}
+                  <div className="bg-white border rounded-lg p-6 mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="text-purple-600" size={20} />
+                        <h3 className="text-lg font-bold">Cấu hình</h3>
+                      </div>
+                      <button
+                        onClick={() => setShowPointsAdjustment(!showPointsAdjustment)}
+                        className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm font-medium"
+                      >
+                        {showPointsAdjustment ? 'Cancel' : 'Adjust Points'}
+                      </button>
+                    </div>
+
+                    {showPointsAdjustment && (
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h4 className="font-semibold mb-3">Cộng trừ điểm</h4>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm font-medium mb-1">
+                              Điểm (Dương là cộng âm là trừ )
+                            </label>
+                            <input
+                              type="number"
+                              value={pointsAdjustment.points}
+                              onChange={(e) => setPointsAdjustment({ ...pointsAdjustment, points: e.target.value })}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              placeholder="e.g., 100 or -50"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Lý do  *</label>
+                            <input
+                              type="text"
+                              value={pointsAdjustment.reason}
+                              onChange={(e) => setPointsAdjustment({ ...pointsAdjustment, reason: e.target.value })}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              placeholder="e.g., Bonus reward, Correction"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handlePointsAdjustment}
+                              disabled={loading}
+                              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50 flex items-center gap-2"
+                            >
+                              {loading ? (
+                                <>
+                                  <Loader className="animate-spin" size={16} />
+                                  Processing...
+                                </>
+                              ) : (
+                                'Apply Adjustment'
+                              )}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowPointsAdjustment(false);
+                                setPointsAdjustment({ points: '', reason: '' });
+                              }}
+                              className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Points History */}
+                  <div className="bg-white border rounded-lg p-6 mb-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <History className="text-gray-600" size={20} />
+                      <h3 className="text-lg font-bold">Lịch sử điểm</h3>
+                    </div>
+
+                    {pointsHistory.length > 0 ? (
+                      <>
+                        <div className="space-y-3">
+                          {pointsHistory.map((item) => {
+                            const transactionType = item.transactionType || item.TransactionType || item.type || item.Type;
+                            const points = item.points || item.Points;
+                            const description = item.description || item.Description;
+                            const createdAt = item.createdAt || item.CreatedAt || item.date || item.Date;
+                            const bookingCode = item.bookingCode || item.BookingCode;
+                            
+                            return (
+                              <div key={item.id || item.Id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="flex items-center gap-3 flex-1">
+                                  {points > 0 ? (
+                                    <ArrowUpCircle className="text-green-500 flex-shrink-0" size={20} />
+                                  ) : (
+                                    <ArrowDownCircle className="text-red-500 flex-shrink-0" size={20} />
+                                  )}
+                                  <div className="flex-1">
+                                    <p className="font-medium">{description}</p>
+                                    <div className="flex gap-3 text-sm text-gray-500 mt-1">
+                                      <span>{formatDateTime(createdAt)}</span>
+                                      {bookingCode && <span>• Booking: {bookingCode}</span>}
+                                      <span>• Type: {transactionType}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className={`font-bold text-lg ${points > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {points > 0 ? '+' : ''}{points}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {pointsHistoryPages > 1 && (
+                          <div className="flex justify-center items-center gap-2 mt-4">
+                            <button
+                              onClick={() => fetchPointsHistory(loyaltyInfo.userId, Math.max(1, pointsHistoryPage - 1))}
+                              disabled={pointsHistoryPage === 1}
+                              className="p-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              <ChevronLeft size={18} />
+                            </button>
+                            <span className="text-sm text-gray-600">
+                              Page {pointsHistoryPage} of {pointsHistoryPages}
+                            </span>
+                            <button
+                              onClick={() => fetchPointsHistory(loyaltyInfo.userId, Math.min(pointsHistoryPages, pointsHistoryPage + 1))}
+                              disabled={pointsHistoryPage === pointsHistoryPages}
+                              className="p-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              <ChevronRight size={18} />
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <History className="mx-auto mb-2" size={40} />
+                        <p>No points history available</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tier Benefits */}
+                  <div className="bg-white border rounded-lg p-6">
+                    <h3 className="text-lg font-bold mb-4">All Membership Tiers</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {tiers.map((tier) => {
+                        const tierName = tier.name || tier.Name;
+                        const tierBadge = getTierBadge(tierName);
+                        const minSpending = tier.minSpending || tier.MinSpending || 0;
+                        const discountPercentage = tier.discountPercentage || tier.DiscountPercentage || 0;
+                        const benefits = tier.benefits || tier.Benefits || [];
+                        
+                        return (
+                          <div
+                            key={tierName}
+                            className={`border-2 rounded-lg p-4 ${
+                              tierName === loyaltyInfo.currentTier ? 'border-purple-500 bg-purple-50' : 'border-gray-200'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-2xl">{tierBadge.icon}</span>
+                              <span className="font-bold text-lg">{tierName}</span>
+                              {tierName === loyaltyInfo.currentTier && (
+                                <span className="ml-auto px-2 py-1 bg-purple-500 text-white text-xs rounded-full">
+                                  Current
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600 mb-1">
+                              Minimum: {formatCurrency(minSpending)}
+                            </p>
+                            <p className="text-sm font-semibold text-purple-600 mb-3">
+                              {(discountPercentage * 100).toFixed(0)}% discount
+                            </p>
+                            <div className="space-y-1">
+                              {Array.isArray(benefits) && benefits.map((benefit, idx) => (
+                                <div key={idx} className="flex items-center gap-2 text-sm">
+                                  <CheckCircle size={14} className="text-green-500" />
+                                  <span>{benefit}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
