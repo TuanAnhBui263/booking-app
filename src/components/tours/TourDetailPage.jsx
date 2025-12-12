@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { tourService } from '../../services/tourService';
 import { favoriteService } from '../../services/favoriteService';
+import { loyaltyService } from '../../services/loyaltyService';
 import { useAuth } from '../../contexts/AuthContext';
 import TourReviewsSection from '../reviews/TourReviewsSection';
 import {
@@ -23,7 +24,11 @@ import {
   Award,
   Shield,
   WalletCards,
-  Loader
+  Loader,
+  TrendingUp,
+  Coins,
+  AlertCircle,
+  Info
 } from 'lucide-react';
 
 const TourDetailPage = () => {
@@ -34,6 +39,7 @@ const TourDetailPage = () => {
 
   const tourId = searchParams.get('id') || location.state?.tourData?.id;
 
+  // Tour states
   const [tour, setTour] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,6 +48,15 @@ const TourDetailPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [liked, setLiked] = useState(false);
   const [availableDepartures, setAvailableDepartures] = useState([]);
+
+  // Loyalty states
+  const [loyaltyInfo, setLoyaltyInfo] = useState(null);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+  const [memberDiscount, setMemberDiscount] = useState(null);
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
+  const [redeemPreview, setRedeemPreview] = useState(null);
+  const [loyaltyError, setLoyaltyError] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     if (tourId) {
@@ -64,17 +79,38 @@ const TourDetailPage = () => {
     }
   }, [isAuthenticated, tourId]);
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadLoyaltyInfo();
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated && loyaltyInfo && selectedDeparture && numberOfGuests > 0) {
+      calculateMemberDiscount();
+    }
+  }, [isAuthenticated, loyaltyInfo, selectedDeparture, numberOfGuests]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (pointsToRedeem > 0 && selectedDeparture && numberOfGuests > 0) {
+        previewRedemption();
+      } else {
+        setRedeemPreview(null);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [pointsToRedeem, selectedDeparture, numberOfGuests]);
+
   const fetchTourDetails = async () => {
     setLoading(true);
     setError(null);
     try {
       const response = await tourService.getTourById(tourId);
       let tourData = response;
-      if (response?.data) {
-        tourData = response.data;
-      } else if (response?.Data) {
-        tourData = response.Data;
-      }
+      if (response?.data) tourData = response.data;
+      else if (response?.Data) tourData = response.Data;
       setTour(tourData);
     } catch (err) {
       console.error('Error fetching tour details:', err);
@@ -139,6 +175,107 @@ const TourDetailPage = () => {
     }
   };
 
+  const loadLoyaltyInfo = async () => {
+    try {
+      setLoyaltyLoading(true);
+      const response = await loyaltyService.getMyLoyaltyInfo();
+      if (response?.success && response?.data) {
+        setLoyaltyInfo(response.data);
+      }
+    } catch (err) {
+      console.error('Error loading loyalty info:', err);
+    } finally {
+      setLoyaltyLoading(false);
+    }
+  };
+
+  const calculateMemberDiscount = async () => {
+    try {
+      const bookingAmount = getBaseAmount();
+      const response = await loyaltyService.calculateDiscount(bookingAmount);
+      if (response?.success && response?.data) {
+        setMemberDiscount(response.data);
+      }
+    } catch (err) {
+      console.error('Error calculating discount:', err);
+    }
+  };
+
+  const previewRedemption = async () => {
+    if (pointsToRedeem % 100 !== 0) {
+      setLoyaltyError('Số điểm phải là bội số của 100');
+      return;
+    }
+
+    try {
+      setPreviewLoading(true);
+      setLoyaltyError(null);
+
+      const bookingAmount = getBaseAmount();
+      const response = await loyaltyService.previewPointsRedemption(bookingAmount, pointsToRedeem);
+
+      if (response?.success && response?.data) {
+        setRedeemPreview(response.data);
+        if (response.data.note) {
+          setLoyaltyError(response.data.note);
+        }
+      } else {
+        setLoyaltyError(response?.message || 'Không thể tính toán đổi điểm');
+        setRedeemPreview(null);
+      }
+    } catch (err) {
+      console.error('Error previewing redemption:', err);
+      setLoyaltyError(err.message || 'Lỗi khi tính toán đổi điểm');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handlePointsInputChange = (value) => {
+    const points = parseInt(value) || 0;
+    const currentPoints = loyaltyInfo?.currentPoints ?? 0;
+
+    if (points > currentPoints) {
+      setLoyaltyError(`Bạn chỉ có ${currentPoints.toLocaleString()} điểm`);
+      return;
+    }
+
+    setPointsToRedeem(points);
+    setLoyaltyError(null);
+  };
+
+  const applyMaxPoints = () => {
+    if (!redeemPreview?.maxRedeemablePoints) return;
+    const maxPointsStr = redeemPreview.maxRedeemablePoints.replace(/[^\d]/g, '');
+    const maxPoints = parseInt(maxPointsStr) || 0;
+    const currentPoints = loyaltyInfo?.currentPoints ?? 0;
+    setPointsToRedeem(Math.min(maxPoints, currentPoints));
+  };
+
+  const getBaseAmount = () => {
+    if (!selectedDeparture) return 0;
+    const price = selectedDeparture.price || selectedDeparture.Price || getTourField('price', 0);
+    const basePrice = price * numberOfGuests;
+    const serviceFee = Math.round(basePrice * 0.1);
+    return basePrice + serviceFee;
+  };
+
+  const calculateFinalAmount = () => {
+    let total = getBaseAmount();
+
+    if (memberDiscount?.discountAmount) {
+      const discount = parseFloat(memberDiscount.discountAmount.replace(/[^\d]/g, '')) || 0;
+      total -= discount;
+    }
+
+    if (redeemPreview?.pointsDiscount) {
+      const pointsDiscount = parseFloat(redeemPreview.pointsDiscount.replace(/[^\d]/g, '')) || 0;
+      total -= pointsDiscount;
+    }
+
+    return Math.max(0, Math.round(total));
+  };
+
   const handleBookNow = () => {
     if (!selectedDeparture) {
       alert('Vui lòng chọn ngày khởi hành');
@@ -175,7 +312,11 @@ const TourDetailPage = () => {
           date: departureDate,
           guests: numberOfGuests,
           departureId: departureId,
-          availableSlots: availableSlots
+          availableSlots: availableSlots,
+          memberDiscount,
+          pointsToRedeem,
+          redeemPreview,
+          finalAmount: calculateFinalAmount()
         }
       }
     });
@@ -184,7 +325,12 @@ const TourDetailPage = () => {
   const getTourField = (field, defaultValue = '') => {
     if (!tour) return defaultValue;
     const pascalField = field.charAt(0).toUpperCase() + field.slice(1);
-    return tour[field] || tour[pascalField] || defaultValue;
+    return tour[field] ?? tour[pascalField] ?? defaultValue;
+  };
+
+  const formatCurrency = (amount) => {
+    if (amount === null || amount === undefined) return '0 ₫';
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
   if (loading) {
@@ -218,9 +364,7 @@ const TourDetailPage = () => {
     const images = tour.images || tour.Images || [];
     if (images.length > 0) {
       const img = images[0];
-      return typeof img === 'string' 
-        ? img 
-        : (img.imageUrl || img.ImageUrl || img.url || img.Url || '');
+      return typeof img === 'string' ? img : (img.imageUrl || img.ImageUrl || img.url || img.Url || '');
     }
     return '';
   })();
@@ -230,12 +374,12 @@ const TourDetailPage = () => {
   const tourName = getTourField('name', getTourField('title', 'Tour'));
   const tourPrice = getTourField('price', 0);
   const tourDuration = getTourField('duration', `${getTourField('durationDays', 0)} ngày`);
-  const tourRating = getTourField('averageRating', getTourField('rating', 0));
-  const tourReviews = getTourField('totalReviews', getTourField('reviews', 0));
+  const tourRating = Number(getTourField('averageRating', getTourField('rating', 0))) || 0;
+  const tourReviews = Number(getTourField('totalReviews', getTourField('reviews', 0))) || 0;
   const tourDifficulty = getTourField('difficulty', '');
   const tourCategory = getTourField('category', getTourField('type', ''));
   const tourDescription = getTourField('description', '');
-  const tourMaxGuests = getTourField('maxGuests', 0);
+  const tourMaxGuests = Number(getTourField('maxGuests', 0)) || 0;
 
   const tourImages = (tour.images || tour.Images || tour.gallery || tour.Gallery || [])
     .map(img => typeof img === 'string' ? img : (img.imageUrl || img.ImageUrl || img.url || img.Url || ''))
@@ -245,8 +389,11 @@ const TourDetailPage = () => {
   const tourIncludes = tour.includes || tour.Includes || [];
   const tourExcludes = tour.excludes || tour.Excludes || [];
 
+  const currentPoints = loyaltyInfo?.currentPoints ?? 0;
+
   return (
     <div className="min-h-screen bg-white">
+      {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <button
@@ -259,8 +406,9 @@ const TourDetailPage = () => {
         </div>
       </div>
 
+      {/* Hero Image */}
       <div className="relative h-[500px]">
-        <img src={tourImage} alt={tourName} className="w-full h-full object-cover" />
+        <img src={tourImage || '/placeholder-tour.jpg'} alt={tourName} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
 
         <div className="absolute top-6 right-6 flex gap-3">
@@ -287,8 +435,8 @@ const TourDetailPage = () => {
               )}
               {tourDifficulty && (
                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                  tourDifficulty === 'Easy' || tourDifficulty === 'Dễ' ? 'bg-green-500 text-white' :
-                  tourDifficulty === 'Medium' || tourDifficulty === 'Trung bình' ? 'bg-yellow-500 text-white' :
+                  ['Easy', 'Dễ'].includes(tourDifficulty) ? 'bg-green-500 text-white' :
+                  ['Medium', 'Trung bình'].includes(tourDifficulty) ? 'bg-yellow-500 text-white' :
                   'bg-red-500 text-white'
                 }`}>
                   {tourDifficulty}
@@ -306,6 +454,7 @@ const TourDetailPage = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
+            {/* Quick Info Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-gradient-to-br from-cyan-50 to-blue-50 p-4 rounded-xl">
                 <Clock className="text-cyan-600 mb-2" size={24} />
@@ -329,6 +478,167 @@ const TourDetailPage = () => {
               </div>
             </div>
 
+            {/* Loyalty Section - Chỉ hiện khi đã đăng nhập */}
+            {isAuthenticated && selectedDeparture && loyaltyInfo && (
+              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl shadow-lg p-6 mb-8 border-2 border-cyan-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center">
+                    <Award className="text-white" size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Ưu đãi thành viên</h2>
+                    <p className="text-sm text-gray-600">
+                      Hạng {loyaltyInfo.currentTierName || 'Thành viên'} -{' '}
+                      {currentPoints.toLocaleString()} điểm
+                    </p>
+                  </div>
+                </div>
+
+                {/* Member Discount */}
+                {memberDiscount && (
+                  <div className="bg-white rounded-lg p-4 mb-4 border border-cyan-200">
+                    <div className="flex items-start gap-3 mb-3">
+                      <TrendingUp className="text-green-500 flex-shrink-0 mt-1" size={20} />
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">
+                          Giảm giá hạng {memberDiscount.memberTier || 'N/A'}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Bạn được giảm {(memberDiscount.discountPercentage || 0) * 100}% cho đơn hàng này
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="bg-gray-50 rounded p-3">
+                        <p className="text-gray-600">Giá gốc</p>
+                        <p className="font-bold text-gray-900">{memberDiscount.originalAmount || '0 ₫'}</p>
+                      </div>
+                      <div className="bg-green-50 rounded p-3">
+                        <p className="text-gray-600">Giảm giá</p>
+                        <p className="font-bold text-green-600">-{memberDiscount.discountAmount || '0 ₫'}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Points Redemption */}
+                <div className="bg-white rounded-lg p-4 border border-cyan-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Coins className="text-cyan-600" size={20} />
+                      <span className="font-semibold text-gray-900">Đổi điểm thưởng</span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {currentPoints.toLocaleString()} điểm có sẵn
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <div className="flex-1 relative">
+                        <input
+                          type="number"
+                          value={pointsToRedeem || ''}
+                          onChange={(e) => handlePointsInputChange(e.target.value)}
+                          placeholder="Nhập số điểm (bội số của 100)"
+                          step="100"
+                          min="0"
+                          max={currentPoints}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                        />
+                        {previewLoading && (
+                          <Loader className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-cyan-500" size={20} />
+                        )}
+                      </div>
+                      <button
+                        onClick={applyMaxPoints}
+                        disabled={!redeemPreview}
+                        className="px-4 py-3 bg-cyan-500 text-white rounded-lg font-semibold hover:bg-cyan-600 transition-colors whitespace-nowrap disabled:opacity-50"
+                      >
+                        Tối đa
+                      </button>
+                    </div>
+
+                    <div className="flex items-start gap-2 text-sm text-gray-600 bg-blue-50 p-3 rounded">
+                      <Info size={16} className="flex-shrink-0 mt-0.5" />
+                      <span>100 điểm = 1.000 VND. Tối đa 50% giá trị đơn hàng</span>
+                    </div>
+
+                    {loyaltyError && (
+                      <div className="flex items-start gap-2 text-sm text-orange-600 bg-orange-50 p-3 rounded">
+                        <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+                        <span>{loyaltyError}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Redemption Preview */}
+                {redeemPreview && (
+                  <div className="bg-white rounded-lg p-4 mt-4 border-2 border-green-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <CheckCircle className="text-green-500" size={20} />
+                      <span className="font-semibold text-gray-900">Xem trước giảm giá</span>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Giá sau giảm hạng</span>
+                        <span className="font-semibold">{redeemPreview.amountAfterMemberDiscount || '0 ₫'}</span>
+                      </div>
+                      <div className="flex justify-between text-green-600">
+                        <span>Đổi điểm ({redeemPreview.pointsToRedeem || 0})</span>
+                        <span className="font-bold">-{redeemPreview.pointsDiscount || '0 ₫'}</span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between text-lg">
+                        <span className="font-bold">Tổng thanh toán</span>
+                        <span className="font-bold text-cyan-600">{redeemPreview.finalAmount || '0 ₫'}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500 pt-2 border-t">
+                        <span>Điểm còn lại</span>
+                        <span>{redeemPreview.remainingPoints || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Điểm tích lũy sau tour</span>
+                        <span className="text-green-600 font-semibold">+{redeemPreview.pointsToEarn || 0}</span>
+                      </div>
+                    </div>
+
+                    {redeemPreview.maxRedeemablePoints && (
+                      <div className="mt-3 bg-purple-50 p-3 rounded text-xs text-purple-700">
+                        <p className="font-semibold mb-1">Quy đổi tối đa</p>
+                        <p>
+                          Bạn có thể đổi tối đa {redeemPreview.maxRedeemablePoints} (= {redeemPreview.maxRedeemableValue || '0 ₫'})
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Next Tier Progress */}
+                {loyaltyInfo.nextTier && loyaltyInfo.pointsToNextTier > 0 && (
+                  <div className="mt-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="text-purple-600" size={18} />
+                      <span className="font-semibold text-purple-900">Thăng hạng</span>
+                    </div>
+                    <p className="text-sm text-purple-700">
+                      Còn <span className="font-bold">{(loyaltyInfo.pointsToNextTier || 0).toLocaleString()} điểm</span> nữa để lên hạng {loyaltyInfo.nextTierName}
+                    </p>
+                    <div className="mt-2 bg-white rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-500"
+                        style={{ 
+                          width: `${Math.min(100, (currentPoints / (currentPoints + (loyaltyInfo.pointsToNextTier || 0))) * 100)}%` 
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tabs */}
             <div className="border-b border-gray-200 mb-8">
               <div className="flex gap-8">
                 {['overview', 'itinerary', 'included'].map(tab => (
@@ -350,6 +660,7 @@ const TourDetailPage = () => {
               </div>
             </div>
 
+            {/* Tab Content */}
             {activeTab === 'overview' && (
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Giới thiệu</h3>
@@ -359,19 +670,15 @@ const TourDetailPage = () => {
                   <>
                     <h3 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Thư viện ảnh</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {tourImages.slice(0, 8).map((img, idx) => {
-                        const imageUrl = typeof img === 'string' ? img : (img.imageUrl || img.ImageUrl || img.url || img.Url || '');
-                        if (!imageUrl) return null;
-                        return (
-                          <div key={idx} className="aspect-square rounded-xl overflow-hidden">
-                            <img
-                              src={imageUrl}
-                              alt={`Gallery ${idx + 1}`}
-                              className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                            />
-                          </div>
-                        );
-                      })}
+                      {tourImages.slice(0, 8).map((img, idx) => (
+                        <div key={idx} className="aspect-square rounded-xl overflow-hidden">
+                          <img
+                            src={img}
+                            alt={`Gallery ${idx + 1}`}
+                            className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                          />
+                        </div>
+                      ))}
                     </div>
                   </>
                 )}
@@ -484,16 +791,14 @@ const TourDetailPage = () => {
             <TourReviewsSection tourId={tourId} />
           </div>
 
+          {/* Booking Card */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
               <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
                 <div className="mb-6">
                   <div className="flex items-baseline gap-2 mb-2">
                     <span className="text-4xl font-bold text-cyan-600">
-                      {new Intl.NumberFormat('vi-VN', {
-                        style: 'currency',
-                        currency: 'VND'
-                      }).format(tourPrice)}
+                      {formatCurrency(tourPrice)}
                     </span>
                     <span className="text-gray-500">/người</span>
                   </div>
@@ -506,6 +811,7 @@ const TourDetailPage = () => {
                   </div>
                 </div>
 
+                {/* Departure Selection */}
                 <div className="mb-4">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Ngày khởi hành
@@ -544,10 +850,7 @@ const TourDetailPage = () => {
                               </div>
                               {depPrice !== tourPrice && (
                                 <span className="text-sm font-bold text-cyan-600">
-                                  {new Intl.NumberFormat('vi-VN', {
-                                    style: 'currency',
-                                    currency: 'VND'
-                                  }).format(depPrice)}
+                                  {formatCurrency(depPrice)}
                                 </span>
                               )}
                             </div>
@@ -573,6 +876,7 @@ const TourDetailPage = () => {
                   )}
                 </div>
 
+                {/* Guest Count */}
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Số lượng khách
@@ -610,38 +914,43 @@ const TourDetailPage = () => {
                   )}
                 </div>
 
+                {/* Price Breakdown */}
                 {selectedDeparture && (
                   <div className="border-t border-gray-200 pt-4 mb-6 space-y-2">
                     <div className="flex justify-between text-gray-600">
                       <span>
-                        {new Intl.NumberFormat('vi-VN', {
-                          style: 'currency',
-                          currency: 'VND'
-                        }).format(selectedDeparture.price || selectedDeparture.Price || tourPrice)} x {numberOfGuests} khách
+                        {formatCurrency(selectedDeparture.price || selectedDeparture.Price || tourPrice)} x {numberOfGuests} khách
                       </span>
                       <span>
-                        {new Intl.NumberFormat('vi-VN', {
-                          style: 'currency',
-                          currency: 'VND'
-                        }).format((selectedDeparture.price || selectedDeparture.Price || tourPrice) * numberOfGuests)}
+                        {formatCurrency((selectedDeparture.price || selectedDeparture.Price || tourPrice) * numberOfGuests)}
                       </span>
                     </div>
+                    
                     <div className="flex justify-between text-gray-600">
                       <span>Phí dịch vụ</span>
                       <span>
-                        {new Intl.NumberFormat('vi-VN', {
-                          style: 'currency',
-                          currency: 'VND'
-                        }).format(Math.round((selectedDeparture.price || selectedDeparture.Price || tourPrice) * numberOfGuests * 0.1))}
+                        {formatCurrency(Math.round((selectedDeparture.price || selectedDeparture.Price || tourPrice) * numberOfGuests * 0.1))}
                       </span>
                     </div>
+
+                    {memberDiscount?.discountAmount && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Giảm giá hạng {memberDiscount.memberTier}</span>
+                        <span>-{memberDiscount.discountAmount}</span>
+                      </div>
+                    )}
+
+                    {redeemPreview?.pointsDiscount && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Đổi {redeemPreview.pointsToRedeem} điểm</span>
+                        <span>-{redeemPreview.pointsDiscount}</span>
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between font-bold text-lg text-gray-900 pt-2 border-t border-gray-200">
                       <span>Tổng cộng</span>
                       <span className="text-cyan-600">
-                        {new Intl.NumberFormat('vi-VN', {
-                          style: 'currency',
-                          currency: 'VND'
-                        }).format(Math.round((selectedDeparture.price || selectedDeparture.Price || tourPrice) * numberOfGuests * 1.1))}
+                        {formatCurrency(calculateFinalAmount())}
                       </span>
                     </div>
                   </div>
@@ -649,8 +958,8 @@ const TourDetailPage = () => {
 
                 <button
                   onClick={handleBookNow}
-                  disabled={!selectedDeparture || numberOfGuests === 0}
-                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
+                  disabled={!selectedDeparture}
+                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span>Đặt ngay</span>
                   <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
@@ -660,6 +969,7 @@ const TourDetailPage = () => {
                   Bạn sẽ không bị tính phí ngay lập tức
                 </p>
 
+                {/* Support */}
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <h4 className="font-semibold text-gray-900 mb-3">Cần hỗ trợ?</h4>
                   <div className="space-y-2 text-sm">
@@ -674,6 +984,7 @@ const TourDetailPage = () => {
                   </div>
                 </div>
 
+                {/* Badges */}
                 <div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 text-xs text-gray-600">
                     <Shield className="text-green-500" size={16} />
