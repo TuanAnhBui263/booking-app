@@ -594,8 +594,8 @@ const CustomersManagement = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Customer & Loyalty Management</h1>
-            <p className="text-gray-600 mt-1">Manage customers, loyalty tiers, and reward points</p>
+            <h1 className="text-3xl font-bold text-gray-900">Khách hàng và điểm thưởng</h1>
+            <p className="text-gray-600 mt-1">Quản lý User, Hạng và điểm thưởng</p>
           </div>
           <button
             onClick={() => openModal('create')}
